@@ -1,10 +1,10 @@
-package com.john.devault
+package dev.devault.workspace
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 
 @SpringBootTest
-class DevaultApplicationTests {
+class WorkspaceApplicationTests {
 
     @Test
     fun contextLoads() {
