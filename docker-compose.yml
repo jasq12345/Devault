@@ -1,0 +1,36 @@
+services:
+  workspace:
+    container_name: ${PROJECT_NAME}-workspace
+    build:
+      context: ./workspace
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+
+  postgres:
+    container_name: ${PROJECT_NAME}-postgres
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgres/data
+
+  nginx:
+    container_name: ${PROJECT_NAME}-nginx
+    image: nginx:1.27
+    environment:
+      NGINX_HOST: ${NGINX_HOST}
+      NGINX_PORT: ${NGINX_PORT}
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+
+
