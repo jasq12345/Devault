@@ -1,3 +1,4 @@
 rootProject.name = "Devault"
 
-include("workspace")
+include("workspace-service")
+include("auth-service")
