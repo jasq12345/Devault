@@ -30,6 +30,12 @@ services:
     ports:
       - "80:80"
 
+  redis:
+    container_name: ${PROJECT_NAME}-redis
+    image: redis:8.6.3
+    ports:
+      - "6379:6379"
+
 volumes:
   postgres_data:
 
