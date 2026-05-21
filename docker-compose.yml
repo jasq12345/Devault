@@ -2,7 +2,7 @@ services:
   workspace:
     container_name: ${PROJECT_NAME}-workspace
     build:
-      context: ./workspace
+      context: ./workspace-service
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
