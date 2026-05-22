@@ -8,6 +8,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.core.userdetails.UserDetailsService
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 
 @Configuration
@@ -20,7 +22,7 @@ class SecurityConfig {
             .csrf { customizer -> customizer.disable() }
             .authorizeHttpRequests {
                 it.apply{
-                    requestMatchers("/auth/**").permitAll()
+                    requestMatchers("/auth/login").permitAll()
                     anyRequest().authenticated()
                 }
             }
@@ -32,8 +34,13 @@ class SecurityConfig {
     @Bean
     fun authenticationProvider(
         userDetailsService: UserDetailsService,
+        passwordEncoder: PasswordEncoder
     ): AuthenticationProvider {
-        return DaoAuthenticationProvider(userDetailsService)
+        val provider = DaoAuthenticationProvider(userDetailsService)
+        provider.setPasswordEncoder(passwordEncoder)
+        return provider
     }
 
+    @Bean
+    fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 }
