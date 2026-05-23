@@ -10,15 +10,15 @@ import org.springframework.stereotype.Service
 
 @Service
 class UserDetailsServiceImpl(
-    val repository: UserRepository
+    val useRepository: UserRepository
 ) : UserDetailsService {
     override fun loadUserByUsername(username: String): UserDetails {
         val isUsername = !username.contains('@')
         val user: User = if (isUsername)
-            repository.findByUsername(username)
+            useRepository.findByUsername(username)
                 ?: throw UsernameNotFoundException("Username or password is incorrect")
         else
-            repository.findByEmail(username)
+            useRepository.findByEmail(username)
                 ?: throw UsernameNotFoundException("Username or password is incorrect")
 
         return UserPrinciple.build(user)
