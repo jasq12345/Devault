@@ -11,4 +11,12 @@ class AuthService(
     private val userRepository: UserRepository,
 ) {
 
+    fun register(user: User): User{
+        user.password = passwordEncoder.encode(user.password)
+        return userRepository.save(user)
+    }
+
+    fun login(user: User){
+
+    }
 }
