@@ -22,14 +22,11 @@ class SecurityConfig {
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http
             .csrf { customizer -> customizer.disable() }
-            .authorizeHttpRequests {
-                it.apply{
-                    requestMatchers("/auth/login").permitAll()
-                    anyRequest().authenticated()
-                }
+            .authorizeHttpRequests { authorize ->
+                authorize.requestMatchers("/api/v1/auth/**").permitAll()
+                authorize.anyRequest().authenticated()
             }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
-            .httpBasic { }
             .build()
     }
 

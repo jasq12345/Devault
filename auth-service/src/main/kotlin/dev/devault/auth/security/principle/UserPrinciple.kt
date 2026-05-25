@@ -3,19 +3,20 @@ package dev.devault.auth.security.principle
 import dev.devault.auth.model.User
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
+import type.RoleType
 import java.util.UUID
 
 class UserPrinciple(
     private val id: UUID,
     private val username: String,
     private val password: String,
-    private val authorities: Collection<GrantedAuthority>,
+    private val authorities: MutableSet<RoleType>,
     private val enabled: Boolean,
     private val banned: Boolean,
 ) : UserDetails {
 
     override fun getAuthorities(): Collection<GrantedAuthority> {
-        return authorities
+        return authorities.map { GrantedAuthority { it.name } }
     }
 
     override fun getPassword(): String {
@@ -35,14 +36,17 @@ class UserPrinciple(
         return enabled
     }
 
+    fun getId(): UUID {
+        return id
+    }
+
     companion object{
         fun build(user: User): UserPrinciple{
-            val authorities = mutableListOf<GrantedAuthority>()
             return UserPrinciple(
                 id = user.id!!,
                 password = user.password ?: "",
                 username = user.username,
-                authorities = authorities,
+                authorities = user.authorities,
                 enabled = user.enabled,
                 banned = user.banned
             )

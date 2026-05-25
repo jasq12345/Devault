@@ -1,6 +1,7 @@
 package dev.devault.auth.model
 
 import jakarta.persistence.*
+import type.RoleType
 import java.util.UUID
 
 @Entity
@@ -20,8 +21,9 @@ class User(
 
 
     @ElementCollection(fetch = FetchType.EAGER)
-    var authorities: List<String> = listOf(),
+    @Enumerated(EnumType.STRING)
+    var authorities: MutableSet<RoleType> = mutableSetOf(RoleType.STANDARD),
 
     var banned: Boolean = false,
     var enabled: Boolean = false,
-) {}
+)

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class UserDetailsServiceImpl(
-    val useRepository: UserRepository
+    private val useRepository: UserRepository
 ) : UserDetailsService {
     override fun loadUserByUsername(username: String): UserDetails {
         val isUsername = !username.contains('@')
