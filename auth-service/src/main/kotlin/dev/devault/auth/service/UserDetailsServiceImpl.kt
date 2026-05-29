@@ -2,7 +2,7 @@ package dev.devault.auth.service
 
 import dev.devault.auth.model.User
 import dev.devault.auth.repository.UserRepository
-import dev.devault.auth.security.principle.UserPrinciple
+import dev.devault.auth.security.principle.UserPrincipal
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -21,6 +21,6 @@ class UserDetailsServiceImpl(
             useRepository.findByEmail(username)
                 ?: throw UsernameNotFoundException("Username or password is incorrect")
 
-        return UserPrinciple.build(user)
+        return UserPrincipal.build(user)
     }
 }

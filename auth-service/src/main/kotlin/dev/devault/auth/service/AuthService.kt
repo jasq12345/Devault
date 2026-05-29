@@ -3,6 +3,7 @@ package dev.devault.auth.service
 import dev.devault.auth.dto.request.LoginDto
 import dev.devault.auth.model.User
 import dev.devault.auth.repository.UserRepository
+import dev.devault.auth.security.principle.UserPrincipal
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -13,6 +14,7 @@ class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val userRepository: UserRepository,
     private val authenticationManager: AuthenticationManager,
+    private val jwtService: JwtGenerationService
 ) {
 
     fun register(user: User): User{
@@ -30,6 +32,9 @@ class AuthService(
             )
         )
 
-        return "Login successful for user: ${authentication.name}"
+        val principal = authentication.principal as? UserPrincipal
+            ?: throw IllegalStateException("Invalid principal type")
+
+        return jwtService.generateToken(principal)
     }
 }

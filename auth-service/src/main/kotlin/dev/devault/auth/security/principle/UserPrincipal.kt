@@ -6,7 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails
 import type.RoleType
 import java.util.UUID
 
-class UserPrinciple(
+class UserPrincipal(
     private val id: UUID,
     private val username: String,
     private val password: String,
@@ -41,8 +41,8 @@ class UserPrinciple(
     }
 
     companion object{
-        fun build(user: User): UserPrinciple{
-            return UserPrinciple(
+        fun build(user: User): UserPrincipal{
+            return UserPrincipal(
                 id = user.id!!,
                 password = user.password ?: "",
                 username = user.username,
