@@ -14,7 +14,7 @@ class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val userRepository: UserRepository,
     private val authenticationManager: AuthenticationManager,
-    private val jwtService: JwtGenerationService
+    private val jwtService: JwtService
 ) {
 
     fun register(user: User): User{

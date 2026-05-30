@@ -12,7 +12,7 @@ import javax.crypto.SecretKey
 
 
 @Service
-class JwtGenerationService(
+class JwtService(
     @Value($$"${jwt.secret}")
     private val  secret: String,
     @Value($$"${jwt.expiration}")
@@ -64,8 +64,8 @@ class JwtGenerationService(
         return extractClaim(token, Claims::getExpiration)
     }
 
-    private fun isTokenExpired(token: String): Boolean {
-        return extractClaim(token, Claims::getExpiration).before(Date())
+    fun extractUserName(token: String): String {
+        return extractClaim(token) { it["username"] as String }
     }
 
     fun validateToken(token: String, principal: UserPrincipal): Boolean {
