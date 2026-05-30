@@ -1,6 +1,7 @@
 package dev.devault.auth.service
 
 import dev.devault.auth.dto.request.LoginDto
+import dev.devault.auth.dto.request.RegisterDto
 import dev.devault.auth.model.User
 import dev.devault.auth.repository.UserRepository
 import dev.devault.auth.security.principle.UserPrincipal
@@ -17,17 +18,32 @@ class AuthService(
     private val jwtService: JwtService
 ) {
 
-    fun register(user: User): User{
-        user.password = passwordEncoder.encode(user.password)
+    fun register(dto: RegisterDto): User {
+        validateRegisterDto(dto)
+
+        val user = User(
+            email = dto.email,
+            username = dto.username,
+            password = passwordEncoder.encode(dto.password)
+        )
+
         user.enabled = true
         return userRepository.save(user)
     }
 
+    private fun validateRegisterDto(dto: RegisterDto) {
+        if (userRepository.existsByUsername(dto.username)) {
+            throw IllegalStateException("Username already exists")
+        }
+        if (userRepository.existsByEmail(dto.email)) {
+            throw IllegalStateException("Email already exists")
+        }
+    }
     fun login(dto: LoginDto): String{
 
         val authentication = authenticationManager.authenticate(
             UsernamePasswordAuthenticationToken(
-                dto.username,
+                dto.identifier,
                 dto.password
             )
         )

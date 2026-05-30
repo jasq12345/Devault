@@ -1,6 +1,7 @@
 package dev.devault.auth.controller
 
 import dev.devault.auth.dto.request.LoginDto
+import dev.devault.auth.dto.request.RegisterDto
 import dev.devault.auth.model.User
 import dev.devault.auth.service.AuthService
 import org.springframework.web.bind.annotation.GetMapping
@@ -16,8 +17,8 @@ class AuthController(
 ){
 
     @PostMapping("/register")
-    fun register(@RequestBody user: User): User {
-        return authService.register(user)
+    fun register(@RequestBody dto: RegisterDto): User {
+        return authService.register(dto)
     }
 
     @GetMapping("/login")
