@@ -60,10 +60,6 @@ class JwtService(
         return UUID.fromString(subject)
     }
 
-    fun extractExpiration(token: String): Date {
-        return extractClaim(token, Claims::getExpiration)
-    }
-
     fun extractUserName(token: String): String {
         return extractClaim(token) { it["username"] as String }
     }
