@@ -42,6 +42,7 @@ out/
 ### Secrets ###
 .env
 *.env
+.env.local
 application-local.yml
 application-secrets.yml
 

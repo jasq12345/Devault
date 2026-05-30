@@ -20,7 +20,7 @@ class JwtGenerationService(
 ){
 
     fun generateToken(principal: UserPrincipal): String {
-        val claims: Map<String, Any> = mapOf(
+        val claims: Map<String, Any> = hashMapOf(
             "username" to principal.username,
             "authorities" to principal.authorities.map { it.authority }
         )
