@@ -1,34 +1,61 @@
 services:
-  workspace:
+  workspace-service:
     container_name: ${PROJECT_NAME}-workspace
     build:
-      context: ./workspace-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./workspace-service/Dockerfile
     ports:
-      - "8080:8080"
+      - "8082:8080"
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER_WORKSPACE}
+      DB_PASSWORD: ${DB_PASSWORD_WORKSPACE}
+      DB_NAME: ${DB_NAME_WORKSPACE}
+    depends_on:
+      - postgres
+
+  auth-service:
+    container_name: ${PROJECT_NAME}-auth-service
+    build:
+      context: .
+      dockerfile: ./auth-service/Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER_AUTH}
+      DB_PASSWORD: ${DB_PASSWORD_AUTH}
+      DB_NAME: ${DB_NAME_AUTH}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+    depends_on:
+      - postgres
 
   postgres:
     container_name: ${PROJECT_NAME}-postgres
-    image: postgres:18
+    image: postgres:17
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: postgres  # domyślna, nie używana
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgres/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  nginx:
-    container_name: ${PROJECT_NAME}-nginx
-    image: nginx:1.27
-    environment:
-      NGINX_HOST: ${NGINX_HOST}
-      NGINX_PORT: ${NGINX_PORT}
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    ports:
-      - "80:80"
+#  nginx:
+#    container_name: ${PROJECT_NAME}-nginx
+#    image: nginx:1.27
+#    environment:
+#      NGINX_HOST: ${NGINX_HOST}
+#      NGINX_PORT: ${NGINX_PORT}
+#    volumes:
+#      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+#    ports:
+#      - "80:80"
 
   redis:
     container_name: ${PROJECT_NAME}-redis
