@@ -29,10 +29,15 @@ class JwtAuthenticationFilter(
         var id: UUID? = null
         var username: String? = null
 
-        if(authHeader != "" && authHeader.startsWith("Bearer ")){
+        if (authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7)
-            id = jwtService.extractId(token)
-            username = jwtService.extractUserName(token)
+            try {
+                id = jwtService.extractId(token)
+                username = jwtService.extractUserName(token)
+            } catch (ex: Exception) {
+                filterChain.doFilter(request, response)
+                return
+            }
         }
 
         if(id != null && username != null && token != null && SecurityContextHolder.getContext().authentication == null){
