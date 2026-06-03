@@ -3,7 +3,7 @@ package dev.devault.auth.security.principle
 import dev.devault.auth.model.User
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
-import type.RoleType
+import dev.devault.auth.type.RoleType
 import java.util.UUID
 
 class UserPrincipal(

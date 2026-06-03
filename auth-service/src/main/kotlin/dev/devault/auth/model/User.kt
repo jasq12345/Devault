@@ -1,7 +1,7 @@
 package dev.devault.auth.model
 
 import jakarta.persistence.*
-import type.RoleType
+import dev.devault.auth.type.RoleType
 import java.util.UUID
 
 @Entity
