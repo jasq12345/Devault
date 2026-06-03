@@ -1,4 +1,4 @@
-package dev.devault.auth.security.principle
+package dev.devault.auth.security.principal
 
 import dev.devault.auth.model.User
 import org.springframework.security.core.GrantedAuthority

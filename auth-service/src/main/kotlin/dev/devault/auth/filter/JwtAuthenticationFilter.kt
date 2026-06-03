@@ -1,6 +1,6 @@
 package dev.devault.auth.filter
 
-import dev.devault.auth.security.principle.UserPrincipal
+import dev.devault.auth.security.principal.UserPrincipal
 import dev.devault.auth.service.JwtService
 import dev.devault.auth.service.UserDetailsServiceImpl
 import jakarta.servlet.FilterChain

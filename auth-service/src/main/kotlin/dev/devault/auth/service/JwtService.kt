@@ -1,6 +1,6 @@
 package dev.devault.auth.service
 
-import dev.devault.auth.security.principle.UserPrincipal
+import dev.devault.auth.security.principal.UserPrincipal
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders

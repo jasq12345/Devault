@@ -4,7 +4,7 @@ import dev.devault.auth.dto.request.LoginDto
 import dev.devault.auth.dto.request.RegisterDto
 import dev.devault.auth.model.User
 import dev.devault.auth.repository.UserRepository
-import dev.devault.auth.security.principle.UserPrincipal
+import dev.devault.auth.security.principal.UserPrincipal
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.crypto.password.PasswordEncoder
