@@ -14,7 +14,9 @@ class RefreshToken (
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     var id: UUID? = null,
-    private var token : String,
-    private var userId: UUID,
-    private var createdAt: Instant = Instant.now(),
+    @jakarta.persistence.Column(nullable = false, unique = true)
+    var token: String,
+    @jakarta.persistence.Column(nullable = false)
+    var userId: UUID,
+    var createdAt: Instant = Instant.now(),
 )
