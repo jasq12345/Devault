@@ -1,6 +1,5 @@
 package dev.devault.auth.filter
 
-import dev.devault.auth.security.principal.UserPrincipal
 import dev.devault.auth.service.JwtService
 import dev.devault.auth.service.UserDetailsServiceImpl
 import jakarta.servlet.FilterChain
@@ -11,7 +10,6 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
-import java.util.UUID
 
 @Component
 class JwtAuthenticationFilter(
@@ -24,37 +22,43 @@ class JwtAuthenticationFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        val authHeader: String = request.getHeader("Authorization") ?: ""
-        var token: String? = null
-        var id: UUID? = null
-        var username: String? = null
+        val authHeader = request.getHeader("Authorization") ?: ""
 
-        if (authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7)
-            try {
-                id = jwtService.extractId(token)
-                username = jwtService.extractUserName(token)
-            } catch (ex: Exception) {
+        if (!authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response)
+            return
+        }
+
+        val token = authHeader.substring(7)
+
+        val identifier: String
+        try {
+            if (jwtService.isRefreshToken(token)) {
                 filterChain.doFilter(request, response)
                 return
             }
+            identifier = jwtService.extractUsername(token)
+        } catch (_: Exception) {
+            filterChain.doFilter(request, response)
+            return
         }
 
-        if(id != null && username != null && token != null && SecurityContextHolder.getContext().authentication == null){
-            val principal: UserPrincipal = userDetailsService.loadUserByUsername(username)
-            if(jwtService.validateToken(token, principal)){
-                val authToken = UsernamePasswordAuthenticationToken(
-                    principal,
-                    null,
-                    principal.authorities
-                )
-
-                authToken.details =
-                    WebAuthenticationDetailsSource().buildDetails(request)
-
-                SecurityContextHolder.getContext().authentication = authToken
-            }
+        if (SecurityContextHolder.getContext().authentication != null) {
+            filterChain.doFilter(request, response)
+            return
         }
+
+        val principal = userDetailsService.loadUserByUsername(identifier)
+
+        if (!jwtService.validateToken(token, principal)) {
+            filterChain.doFilter(request, response)
+            return
+        }
+
+        val authToken = UsernamePasswordAuthenticationToken(principal, null, principal.authorities)
+        authToken.details = WebAuthenticationDetailsSource().buildDetails(request)
+        SecurityContextHolder.getContext().authentication = authToken
+
         filterChain.doFilter(request, response)
     }
 }

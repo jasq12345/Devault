@@ -1,11 +1,12 @@
 package dev.devault.auth.controller
 
 import dev.devault.auth.dto.request.LoginDto
+import dev.devault.auth.dto.request.RefreshTokenDto
 import dev.devault.auth.dto.request.RegisterDto
-import dev.devault.auth.dto.response.LoginResponseDto
 import dev.devault.auth.dto.response.RegisterResponseDto
-import dev.devault.auth.model.User
+import dev.devault.auth.dto.response.TokenPair
 import dev.devault.auth.service.AuthService
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -20,22 +21,24 @@ class AuthController(
 ){
 
     @PostMapping("/register")
-    fun register(@RequestBody dto: RegisterDto): ResponseEntity<RegisterResponseDto> {
-        val user: User = authService.register(dto)
-        val responseDto = RegisterResponseDto(
-            id = user.id!!,
-            email = user.email,
-            username = user.username,
-            role = user.authorities
-        )
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto)
+    fun register(@RequestBody @Valid dto: RegisterDto): ResponseEntity<RegisterResponseDto> {
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(authService.register(dto))
     }
 
     @PostMapping("/login")
-    fun login(@RequestBody dto: LoginDto): ResponseEntity<LoginResponseDto> {
-        val token = authService.login(dto)
+    fun login(@RequestBody @Valid dto: LoginDto): ResponseEntity<TokenPair> {
+        return ResponseEntity.ok(authService.login(dto))
+    }
 
-        return ResponseEntity.ok(LoginResponseDto(token))
+    @PostMapping("/refresh")
+    fun refresh(@RequestBody dto: RefreshTokenDto): ResponseEntity<TokenPair>{
+        return ResponseEntity.ok(authService.refresh(dto))
+    }
+
+    @PostMapping("/logout")
+    fun logout(@RequestBody dto: RefreshTokenDto): ResponseEntity<Void>{
+        authService.logout(dto)
+        return ResponseEntity.noContent().build()
     }
 }

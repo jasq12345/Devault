@@ -12,13 +12,13 @@ class UserDetailsServiceImpl(
     private val userRepository: UserRepository
 ) : UserDetailsService {
 
-    override fun loadUserByUsername(username: String): UserPrincipal {
-        val isUsername = !username.contains('@')
+    override fun loadUserByUsername(identifier: String): UserPrincipal {
+        val isUsername = !identifier.contains('@')
         val user: User = if (isUsername)
-            userRepository.findByUsername(username)
+            userRepository.findByUsername(identifier)
                 ?: throw UsernameNotFoundException("Username or password is incorrect")
         else
-            userRepository.findByEmail(username)
+            userRepository.findByEmail(identifier)
                 ?: throw UsernameNotFoundException("Username or password is incorrect")
 
         return UserPrincipal.build(user)
