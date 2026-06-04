@@ -6,6 +6,7 @@ import dev.devault.auth.dto.request.RegisterDto
 import dev.devault.auth.dto.response.RegisterResponseDto
 import dev.devault.auth.dto.response.TokenPair
 import dev.devault.auth.service.AuthService
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -20,13 +21,13 @@ class AuthController(
 ){
 
     @PostMapping("/register")
-    fun register(@RequestBody dto: RegisterDto): ResponseEntity<RegisterResponseDto> {
+    fun register(@RequestBody @Valid dto: RegisterDto): ResponseEntity<RegisterResponseDto> {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(authService.register(dto))
     }
 
     @PostMapping("/login")
-    fun login(@RequestBody dto: LoginDto): ResponseEntity<TokenPair> {
+    fun login(@RequestBody @Valid dto: LoginDto): ResponseEntity<TokenPair> {
         return ResponseEntity.ok(authService.login(dto))
     }
 
