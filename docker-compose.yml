@@ -9,9 +9,9 @@ services:
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER_WORKSPACE}
-      DB_PASSWORD: ${DB_PASSWORD_WORKSPACE}
-      DB_NAME: ${DB_NAME_WORKSPACE}
+      DB_USER_WORKSPACE: ${DB_USER_WORKSPACE}
+      DB_PASSWORD_WORKSPACE: ${DB_PASSWORD_WORKSPACE}
+      DB_NAME_WORKSPACE: ${DB_NAME_WORKSPACE}
     depends_on:
       - postgres
 
@@ -25,15 +25,16 @@ services:
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER_AUTH}
-      DB_PASSWORD: ${DB_PASSWORD_AUTH}
-      DB_NAME: ${DB_NAME_AUTH}
+      DB_USER_AUTH: ${DB_USER_AUTH}
+      DB_PASSWORD_AUTH: ${DB_PASSWORD_AUTH}
+      DB_NAME_AUTH: ${DB_NAME_AUTH}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   postgres:
     container_name: ${PROJECT_NAME}-postgres
@@ -47,6 +48,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 #  nginx:
 #    container_name: ${PROJECT_NAME}-nginx

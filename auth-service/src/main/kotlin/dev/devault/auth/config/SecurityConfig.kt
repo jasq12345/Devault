@@ -27,6 +27,7 @@ class SecurityConfig(
         return http
             .csrf { customizer -> customizer.disable() }
             .authorizeHttpRequests { authorize ->
+                authorize.requestMatchers("/.well-known/jwks.json").permitAll()
                 authorize.requestMatchers("/api/v1/auth/**").permitAll()
                 authorize.anyRequest().authenticated()
             }

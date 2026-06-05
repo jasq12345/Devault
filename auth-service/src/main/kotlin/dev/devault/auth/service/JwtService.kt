@@ -1,37 +1,26 @@
 package dev.devault.auth.service
 
 import dev.devault.auth.config.JwtProperties
+import dev.devault.auth.config.KeyProvider
 import dev.devault.auth.dto.response.TokenPair
 import dev.devault.auth.security.principal.UserPrincipal
 import dev.devault.auth.type.TokenType
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import org.springframework.stereotype.Service
-import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.PublicKey
-import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
-import java.util.Base64
 import java.util.Date
 import java.util.UUID
 
 @Service
 class JwtService(
-    private val jwtProperties: JwtProperties
+    private val jwtProperties: JwtProperties,
+    keyProvider: KeyProvider
 ){
-    private val privateKey: PrivateKey
-    private val publicKey: PublicKey
+    private val privateKey: PrivateKey = keyProvider.getPrivateKey()
+    private val publicKey: PublicKey = keyProvider.getPublicKey()
 
-    init {
-        val keyFactory = KeyFactory.getInstance("Ed25519")
-        privateKey = keyFactory.generatePrivate(
-            PKCS8EncodedKeySpec(Base64.getDecoder().decode(jwtProperties.privateKey))
-        )
-        publicKey = keyFactory.generatePublic(
-            X509EncodedKeySpec(Base64.getDecoder().decode(jwtProperties.publicKey))
-        )
-    }
 
     fun generateTokenPair(principal: UserPrincipal): TokenPair {
         val claims: Map<String, Any> = mapOf(
