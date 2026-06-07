@@ -16,6 +16,10 @@ class JwksService(
 
     fun getJwks() : Map<String, Any> {
         val encoded = publicKey.encoded
+        require(encoded.size >= 32) {
+            "Unexpected public key encoding length: ${encoded.size}"
+        }
+
         val keyBytes = encoded.takeLast(32).toByteArray()
 
         val octetKeyPair = OctetKeyPair.Builder(Curve.Ed25519, Base64URL.encode(keyBytes))

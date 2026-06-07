@@ -23,13 +23,13 @@ class JwtService(
 
     fun generateTokenPair(principal: UserPrincipal): TokenPair {
         val claims: Map<String, Any> = mapOf(
-            "jti" to UUID.randomUUID(),
+            "jti" to UUID.randomUUID().toString(),
             "username" to principal.username,
             "authorities" to principal.authorities.map { it.authority },
-            "type" to TokenType.ACCESS
+            "type" to TokenType.ACCESS.name.lowercase()
         )
         val accessToken = createToken(claims, principal.getId(), TokenType.ACCESS)
-        val refreshToken = createToken(mapOf("jti" to UUID.randomUUID(), "type" to TokenType.REFRESH ), principal.getId(), TokenType.REFRESH)
+        val refreshToken = createToken(mapOf("jti" to UUID.randomUUID().toString(), "type" to TokenType.REFRESH.name.lowercase() ), principal.getId(), TokenType.REFRESH)
 
         return TokenPair(accessToken, refreshToken)
     }
@@ -68,7 +68,7 @@ class JwtService(
         extractClaim(token) { it["username"] as String }
 
     fun extractJti(token: String): UUID =
-        extractClaim(token) { UUID.fromString(it["jti"] as String) }
+        extractClaim(token) { UUID.fromString(it["jti"].toString()) }
 
     fun extractAuthorities(token: String): List<String> =
         extractClaim(token) {

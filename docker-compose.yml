@@ -13,7 +13,8 @@ services:
       DB_PASSWORD_WORKSPACE: ${DB_PASSWORD_WORKSPACE}
       DB_NAME_WORKSPACE: ${DB_NAME_WORKSPACE}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   auth-service:
     container_name: ${PROJECT_NAME}-auth-service
@@ -37,6 +38,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   postgres:
     container_name: ${PROJECT_NAME}-postgres
@@ -72,6 +75,11 @@ services:
     image: redis:8.6.3
     ports:
       - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

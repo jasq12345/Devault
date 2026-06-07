@@ -66,36 +66,35 @@ class AuthService(
     }
 
     fun refresh(dto: RefreshTokenDto): TokenPair {
-        if(!jwtService.isRefreshToken(dto.refreshToken))
-            throw IllegalStateException("Invalid token type")
+        val (jti, ttl) = validateAndExtractRefreshToken(dto.refreshToken)
+        blacklistService.blacklist(jti, ttl)
 
-        val refreshJti = jwtService.extractJti(dto.refreshToken)
-
-        if(blacklistService.isBlacklisted(refreshJti)){
-            throw IllegalStateException("Refresh token not found")
-        }
-
-        val refreshTtl = jwtService.extractExpiration(dto.refreshToken).time - System.currentTimeMillis()
-
-        blacklistService.blacklist(refreshJti, refreshTtl)
-
-        val userId: UUID = jwtService.extractId(dto.refreshToken)
+        val userId = jwtService.extractId(dto.refreshToken)
         val user = userRepository.findById(userId)
             .orElseThrow { IllegalStateException("User not found") }
 
         val principal = UserPrincipal.build(user)
-        val tokenPair = jwtService.generateTokenPair(principal)
 
-        return tokenPair
+        return jwtService.generateTokenPair(principal)
     }
 
     fun logout(dto: RefreshTokenDto) {
-        if(!jwtService.isRefreshToken(dto.refreshToken))
+        val (jti, ttl) = validateAndExtractRefreshToken(dto.refreshToken)
+        blacklistService.blacklist(jti, ttl)
+    }
+
+    private fun validateAndExtractRefreshToken(token: String): Pair<UUID, Long> {
+        if (!jwtService.isRefreshToken(token))
             throw IllegalStateException("Invalid token type")
 
-        val refreshJti = jwtService.extractJti(dto.refreshToken)
-        val refreshTtl = jwtService.extractExpiration(dto.refreshToken).time - System.currentTimeMillis()
+        val jti = jwtService.extractJti(token)
 
-        blacklistService.blacklist(refreshJti, refreshTtl)
+        if (blacklistService.isBlacklisted(jti))
+            throw IllegalStateException("Refresh token not found")
+
+        val ttl = jwtService.extractExpiration(token).time - System.currentTimeMillis()
+        if (ttl <= 0) throw IllegalStateException("Refresh token expired")
+
+        return Pair(jti, ttl)
     }
 }
