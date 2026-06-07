@@ -67,7 +67,8 @@ class AuthService(
 
     fun refresh(dto: RefreshTokenDto): TokenPair {
         val (jti, ttl) = validateAndExtractRefreshToken(dto.refreshToken)
-        blacklistService.blacklist(jti, ttl)
+        if (!blacklistService.blacklist(jti, ttl))
+            throw IllegalStateException("Refresh token already used")
 
         val userId = jwtService.extractId(dto.refreshToken)
         val user = userRepository.findById(userId)
@@ -80,7 +81,8 @@ class AuthService(
 
     fun logout(dto: RefreshTokenDto) {
         val (jti, ttl) = validateAndExtractRefreshToken(dto.refreshToken)
-        blacklistService.blacklist(jti, ttl)
+        if (!blacklistService.blacklist(jti, ttl))
+            throw IllegalStateException("Refresh token already used")
     }
 
     private fun validateAndExtractRefreshToken(token: String): Pair<UUID, Long> {

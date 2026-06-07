@@ -9,8 +9,9 @@ import java.util.concurrent.TimeUnit
 class TokenBlacklistService(
     private val redisTemplate: RedisTemplate<String, String>
 ) {
-    fun blacklist(jti: UUID, ttl: Long) {
-        redisTemplate.opsForValue().set("blacklist:$jti", "1", ttl, TimeUnit.MILLISECONDS)
+    fun blacklist(jti: UUID, ttl: Long): Boolean {
+        return redisTemplate.opsForValue()
+            .setIfAbsent("blacklist:$jti", "1", ttl, TimeUnit.MILLISECONDS) == true
     }
 
     fun isBlacklisted(jti: UUID): Boolean {
