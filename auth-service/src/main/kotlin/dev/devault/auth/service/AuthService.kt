@@ -5,9 +5,7 @@ import dev.devault.auth.dto.request.RefreshTokenDto
 import dev.devault.auth.dto.request.RegisterDto
 import dev.devault.auth.dto.response.RegisterResponseDto
 import dev.devault.auth.dto.response.TokenPair
-import dev.devault.auth.model.RefreshToken
 import dev.devault.auth.model.User
-import dev.devault.auth.repository.RefreshTokenRepository
 import dev.devault.auth.repository.UserRepository
 import dev.devault.auth.security.principal.UserPrincipal
 import org.springframework.security.authentication.AuthenticationManager
@@ -20,9 +18,9 @@ import java.util.UUID
 class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val userRepository: UserRepository,
-    private val refreshTokenRepository: RefreshTokenRepository,
     private val authenticationManager: AuthenticationManager,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val blacklistService: TokenBlacklistService
 ) {
 
     fun register(dto: RegisterDto) : RegisterResponseDto {
@@ -54,7 +52,6 @@ class AuthService(
         }
     }
     fun login(dto: LoginDto): TokenPair {
-
         val authentication = authenticationManager.authenticate(
             UsernamePasswordAuthenticationToken(
                 dto.identifier,
@@ -65,20 +62,22 @@ class AuthService(
         val principal = authentication.principal as? UserPrincipal
             ?: throw IllegalStateException("Invalid principal type")
 
-        val tokenPair = jwtService.generateTokenPair(principal)
-        saveRefreshToken(tokenPair.refreshToken, principal.getId())
-
-        return tokenPair
+        return jwtService.generateTokenPair(principal)
     }
 
     fun refresh(dto: RefreshTokenDto): TokenPair {
         if(!jwtService.isRefreshToken(dto.refreshToken))
             throw IllegalStateException("Invalid token type")
 
-        refreshTokenRepository.findByToken(dto.refreshToken)
-            ?: throw IllegalStateException("Refresh token not found")
+        val refreshJti = jwtService.extractJti(dto.refreshToken)
 
-        refreshTokenRepository.deleteByToken(dto.refreshToken)
+        if(blacklistService.isBlacklisted(refreshJti)){
+            throw IllegalStateException("Refresh token not found")
+        }
+
+        val refreshTtl = jwtService.extractExpiration(dto.refreshToken).time - System.currentTimeMillis()
+
+        blacklistService.blacklist(refreshJti, refreshTtl)
 
         val userId: UUID = jwtService.extractId(dto.refreshToken)
         val user = userRepository.findById(userId)
@@ -87,8 +86,6 @@ class AuthService(
         val principal = UserPrincipal.build(user)
         val tokenPair = jwtService.generateTokenPair(principal)
 
-        saveRefreshToken(tokenPair.refreshToken, userId)
-
         return tokenPair
     }
 
@@ -96,11 +93,9 @@ class AuthService(
         if(!jwtService.isRefreshToken(dto.refreshToken))
             throw IllegalStateException("Invalid token type")
 
-        refreshTokenRepository.deleteByToken(dto.refreshToken)
-    }
+        val refreshJti = jwtService.extractJti(dto.refreshToken)
+        val refreshTtl = jwtService.extractExpiration(dto.refreshToken).time - System.currentTimeMillis()
 
-
-    private fun saveRefreshToken(token: String, userId: UUID) {
-        refreshTokenRepository.save(RefreshToken(token = token, userId = userId))
+        blacklistService.blacklist(refreshJti, refreshTtl)
     }
 }

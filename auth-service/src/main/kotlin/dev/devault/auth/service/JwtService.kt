@@ -21,15 +21,15 @@ class JwtService(
     private val privateKey: PrivateKey = keyProvider.getPrivateKey()
     private val publicKey: PublicKey = keyProvider.getPublicKey()
 
-
     fun generateTokenPair(principal: UserPrincipal): TokenPair {
         val claims: Map<String, Any> = mapOf(
+            "jti" to UUID.randomUUID(),
             "username" to principal.username,
             "authorities" to principal.authorities.map { it.authority },
-            "type" to TokenType.ACCESS.name.lowercase()
+            "type" to TokenType.ACCESS
         )
         val accessToken = createToken(claims, principal.getId(), TokenType.ACCESS)
-        val refreshToken = createToken(mapOf("type" to TokenType.REFRESH.name.lowercase() ), principal.getId(), TokenType.REFRESH)
+        val refreshToken = createToken(mapOf("jti" to UUID.randomUUID(), "type" to TokenType.REFRESH ), principal.getId(), TokenType.REFRESH)
 
         return TokenPair(accessToken, refreshToken)
     }
@@ -48,7 +48,7 @@ class JwtService(
             .compact()
     }
 
-    private fun extractAllClaims(token: String): Claims{
+    private fun extractAllClaims(token: String): Claims {
         return Jwts.parser()
             .verifyWith(publicKey)
             .build()
@@ -61,14 +61,23 @@ class JwtService(
         return claimsResolver(claims)
     }
 
-    fun extractId(token: String): UUID {
-        val subject = extractClaim(token, Claims::getSubject)
-        return UUID.fromString(subject)
-    }
+    fun extractId(token: String): UUID =
+        UUID.fromString(extractClaim(token, Claims::getSubject))
 
-    fun extractUsername(token: String): String {
-        return extractClaim(token) { it["username"] as String }
-    }
+    fun extractUsername(token: String): String =
+        extractClaim(token) { it["username"] as String }
+
+    fun extractJti(token: String): UUID =
+        extractClaim(token) { UUID.fromString(it["jti"] as String) }
+
+    fun extractAuthorities(token: String): List<String> =
+        extractClaim(token) {
+            @Suppress("UNCHECKED_CAST")
+            it["authorities"] as List<String>
+        }
+
+    fun extractExpiration(token: String): Date =
+        extractClaim(token, Claims::getExpiration)
 
     fun validateToken(token: String, principal: UserPrincipal): Boolean {
         val claims = extractAllClaims(token)
@@ -78,5 +87,5 @@ class JwtService(
     }
 
     fun isRefreshToken(token: String): Boolean =
-        extractClaim(token) { it["type"] } == TokenType.REFRESH.name.lowercase()
+        extractClaim(token) { it["type"] } == TokenType.REFRESH
 }
