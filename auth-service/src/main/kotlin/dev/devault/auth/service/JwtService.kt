@@ -70,12 +70,6 @@ class JwtService(
     fun extractJti(token: String): UUID =
         extractClaim(token) { UUID.fromString(it["jti"].toString()) }
 
-    fun extractAuthorities(token: String): List<String> =
-        extractClaim(token) {
-            @Suppress("UNCHECKED_CAST")
-            it["authorities"] as List<String>
-        }
-
     fun extractExpiration(token: String): Date =
         extractClaim(token, Claims::getExpiration)
 

@@ -5,11 +5,14 @@ import dev.devault.auth.dto.request.RefreshTokenDto
 import dev.devault.auth.dto.request.RegisterDto
 import dev.devault.auth.dto.response.RegisterResponseDto
 import dev.devault.auth.dto.response.TokenPair
+import dev.devault.auth.exception.InvalidTokenException
+import dev.devault.auth.exception.UserAlreadyExistsException
 import dev.devault.auth.model.User
 import dev.devault.auth.repository.UserRepository
 import dev.devault.auth.security.principal.UserPrincipal
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -44,11 +47,8 @@ class AuthService(
     }
 
     private fun validateRegisterDto(dto: RegisterDto) {
-        if (userRepository.existsByUsername(dto.username)) {
-            throw IllegalStateException("Username already exists")
-        }
-        if (userRepository.existsByEmail(dto.email)) {
-            throw IllegalStateException("Email already exists")
+        if (userRepository.existsByUsernameOrEmail(dto.username, dto.email)) {
+            throw UserAlreadyExistsException("Username or email already exists")
         }
     }
     fun login(dto: LoginDto): TokenPair {
@@ -68,11 +68,11 @@ class AuthService(
     fun refresh(dto: RefreshTokenDto): TokenPair {
         val (jti, ttl) = validateAndExtractRefreshToken(dto.refreshToken)
         if (!blacklistService.blacklist(jti, ttl))
-            throw IllegalStateException("Refresh token already used")
+            throw InvalidTokenException("Refresh token is blacklisted")
 
         val userId = jwtService.extractId(dto.refreshToken)
         val user = userRepository.findById(userId)
-            .orElseThrow { IllegalStateException("User not found") }
+            .orElseThrow { UsernameNotFoundException("User not found") }
 
         val principal = UserPrincipal.build(user)
 
@@ -82,21 +82,23 @@ class AuthService(
     fun logout(dto: RefreshTokenDto) {
         val (jti, ttl) = validateAndExtractRefreshToken(dto.refreshToken)
         if (!blacklistService.blacklist(jti, ttl))
-            throw IllegalStateException("Refresh token already used")
+            throw InvalidTokenException("Refresh token is blacklisted")
     }
 
-    private fun validateAndExtractRefreshToken(token: String): Pair<UUID, Long> {
+    private fun validateAndExtractRefreshToken(token: String): RefreshTokenClaims {
         if (!jwtService.isRefreshToken(token))
-            throw IllegalStateException("Invalid token type")
+            throw InvalidTokenException("Invalid token type")
 
         val jti = jwtService.extractJti(token)
 
         if (blacklistService.isBlacklisted(jti))
-            throw IllegalStateException("Refresh token not found")
+            throw InvalidTokenException("Refresh token is blacklisted")
 
         val ttl = jwtService.extractExpiration(token).time - System.currentTimeMillis()
-        if (ttl <= 0) throw IllegalStateException("Refresh token expired")
+        if (ttl <= 0) throw InvalidTokenException("Refresh token expired")
 
-        return Pair(jti, ttl)
+        return RefreshTokenClaims(jti, ttl)
     }
+
+    private data class RefreshTokenClaims(val jti: UUID, val ttl: Long)
 }
