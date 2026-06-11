@@ -1,17 +1,20 @@
 package dev.devault.authlib.service
 
-import dev.devault.authlib.config.JwksProperties
+import dev.devault.authlib.config.JwksClient
+import dev.devault.authlib.type.TokenType
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
+import org.springframework.stereotype.Service
 import java.security.PublicKey
 import java.util.Date
 import java.util.UUID
 
+@Service
 class JwtClaimsService(
-    jwksProperties: JwksProperties
+    jwksClient: JwksClient
 ) {
 
-    private val publicKey: PublicKey = jwksProperties.uri
+    private val publicKey: PublicKey = jwksClient.getPublicKey()
     private fun extractAllClaims(token: String): Claims {
         return Jwts.parser()
             .verifyWith(publicKey)
@@ -36,5 +39,18 @@ class JwtClaimsService(
 
     fun extractExpiration(token: String): Date =
         extractClaim(token, Claims::getExpiration)
+
+    fun isRefreshToken(token: String): Boolean =
+        extractClaim(token) { it["type"] } == TokenType.REFRESH
+
+    fun extractAuthorities(token: String): List<String> =
+        extractClaim(token) { claims ->
+            val authorities = claims["authorities"]
+            if (authorities is List<*>) {
+                authorities.filterIsInstance<String>()
+            } else {
+                throw IllegalStateException("Invalid authorities claim")
+            }
+        }
 
 }
