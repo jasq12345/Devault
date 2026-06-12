@@ -1,13 +1,12 @@
 package dev.devault.authlib.config
 
 import com.nimbusds.jose.jwk.JWKSet
+import dev.devault.authlib.config.properties.JwksProperties
 import jakarta.annotation.PostConstruct
-import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.getForObject
 import java.security.PublicKey
 
-@Component
 class JwksClient(
     private val jwksProperties: JwksProperties,
     private val restTemplate: RestTemplate

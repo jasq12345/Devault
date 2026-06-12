@@ -19,7 +19,6 @@ class User(
 
     var password: String? = null,
 
-
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
     var authorities: MutableSet<RoleType> = mutableSetOf(RoleType.STANDARD),

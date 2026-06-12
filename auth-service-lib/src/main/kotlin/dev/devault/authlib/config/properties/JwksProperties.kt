@@ -1,4 +1,4 @@
-package dev.devault.authlib.config
+package dev.devault.authlib.config.properties
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 

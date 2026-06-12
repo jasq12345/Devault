@@ -1,6 +1,6 @@
 package dev.devault.auth.config
 
-import dev.devault.auth.filter.JwtAuthenticationFilter
+import dev.devault.authlib.filter.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager

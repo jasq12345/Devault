@@ -4,12 +4,10 @@ import dev.devault.authlib.config.JwksClient
 import dev.devault.authlib.type.TokenType
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
-import org.springframework.stereotype.Service
 import java.security.PublicKey
 import java.util.Date
 import java.util.UUID
 
-@Service
 class JwtClaimsService(
     jwksClient: JwksClient
 ) {

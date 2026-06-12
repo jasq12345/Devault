@@ -31,12 +31,15 @@ class JwtAuthenticationFilter(
         val token = authHeader.substring(7)
 
         val identifier: String
+        val authorities: List<SimpleGrantedAuthority>
         try {
             if (jwtClaimsService.isRefreshToken(token)) {
                 filterChain.doFilter(request, response)
                 return
             }
             identifier = jwtClaimsService.extractUsername(token)
+            authorities = jwtClaimsService.extractAuthorities(token)
+                .map { SimpleGrantedAuthority(it) }
         } catch (_: Exception) {
             filterChain.doFilter(request, response)
             return
@@ -47,8 +50,6 @@ class JwtAuthenticationFilter(
             return
         }
 
-        val authorities = jwtClaimsService.extractAuthorities(token)
-            .map { SimpleGrantedAuthority(it) }
         val authToken = UsernamePasswordAuthenticationToken(identifier, null, authorities)
 
         authToken.details = WebAuthenticationDetailsSource().buildDetails(request)

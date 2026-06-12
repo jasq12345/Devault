@@ -10,6 +10,7 @@ import dev.devault.auth.exception.UserAlreadyExistsException
 import dev.devault.auth.model.User
 import dev.devault.auth.repository.UserRepository
 import dev.devault.auth.security.principal.UserPrincipal
+import dev.devault.authlib.service.JwtClaimsService
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -22,7 +23,8 @@ class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val userRepository: UserRepository,
     private val authenticationManager: AuthenticationManager,
-    private val jwtService: JwtService,
+    private val jwtGenerationService: JwtGenerationService,
+    private val jwtClaimsService: JwtClaimsService,
     private val blacklistService: TokenBlacklistService
 ) {
 
@@ -62,7 +64,7 @@ class AuthService(
         val principal = authentication.principal as? UserPrincipal
             ?: throw IllegalStateException("Invalid principal type")
 
-        return jwtService.generateTokenPair(principal)
+        return jwtGenerationService.generateTokenPair(principal)
     }
 
     fun refresh(dto: RefreshTokenDto): TokenPair {
@@ -70,13 +72,13 @@ class AuthService(
         if (!blacklistService.blacklist(jti, ttl))
             throw InvalidTokenException("Refresh token is blacklisted")
 
-        val userId = jwtService.extractId(dto.refreshToken)
+        val userId = jwtClaimsService.extractId(dto.refreshToken)
         val user = userRepository.findById(userId)
             .orElseThrow { UsernameNotFoundException("User not found") }
 
         val principal = UserPrincipal.build(user)
 
-        return jwtService.generateTokenPair(principal)
+        return jwtGenerationService.generateTokenPair(principal)
     }
 
     fun logout(dto: RefreshTokenDto) {
@@ -86,15 +88,15 @@ class AuthService(
     }
 
     private fun validateAndExtractRefreshToken(token: String): RefreshTokenClaims {
-        if (!jwtService.isRefreshToken(token))
+        if (!jwtClaimsService.isRefreshToken(token))
             throw InvalidTokenException("Invalid token type")
 
-        val jti = jwtService.extractJti(token)
+        val jti = jwtClaimsService.extractJti(token)
 
         if (blacklistService.isBlacklisted(jti))
             throw InvalidTokenException("Refresh token is blacklisted")
 
-        val ttl = jwtService.extractExpiration(token).time - System.currentTimeMillis()
+        val ttl = jwtClaimsService.extractExpiration(token).time - System.currentTimeMillis()
         if (ttl <= 0) throw InvalidTokenException("Refresh token expired")
 
         return RefreshTokenClaims(jti, ttl)
