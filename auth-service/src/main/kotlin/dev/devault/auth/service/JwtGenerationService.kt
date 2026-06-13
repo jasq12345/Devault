@@ -1,7 +1,7 @@
 package dev.devault.auth.service
 
-import dev.devault.auth.config.JwtProperties
-import dev.devault.auth.config.KeyProvider
+import dev.devault.auth.config.properties.JwtProperties
+import dev.devault.auth.security.provider.KeyProvider
 import dev.devault.auth.dto.response.TokenPair
 import dev.devault.auth.security.principal.UserPrincipal
 import dev.devault.authlib.type.TokenType

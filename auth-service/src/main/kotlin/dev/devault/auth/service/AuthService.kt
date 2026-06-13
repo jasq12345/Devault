@@ -11,6 +11,7 @@ import dev.devault.auth.model.User
 import dev.devault.auth.repository.UserRepository
 import dev.devault.auth.security.principal.UserPrincipal
 import dev.devault.authlib.service.JwtClaimsService
+import dev.devault.authlib.type.TokenType
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -69,8 +70,7 @@ class AuthService(
 
     fun refresh(dto: RefreshTokenDto): TokenPair {
         val (jti, ttl) = validateAndExtractRefreshToken(dto.refreshToken)
-        if (!blacklistService.blacklist(jti, ttl))
-            throw InvalidTokenException("Refresh token is blacklisted")
+        blacklistOrThrow(jti, ttl)
 
         val userId = jwtClaimsService.extractId(dto.refreshToken)
         val user = userRepository.findById(userId)
@@ -83,12 +83,11 @@ class AuthService(
 
     fun logout(dto: RefreshTokenDto) {
         val (jti, ttl) = validateAndExtractRefreshToken(dto.refreshToken)
-        if (!blacklistService.blacklist(jti, ttl))
-            throw InvalidTokenException("Refresh token is blacklisted")
+        blacklistOrThrow(jti, ttl)
     }
 
     private fun validateAndExtractRefreshToken(token: String): RefreshTokenClaims {
-        if (!jwtClaimsService.isRefreshToken(token))
+        if (!isRefreshToken(token))
             throw InvalidTokenException("Invalid token type")
 
         val jti = jwtClaimsService.extractJti(token)
@@ -101,6 +100,14 @@ class AuthService(
 
         return RefreshTokenClaims(jti, ttl)
     }
+
+    private fun blacklistOrThrow(jti: UUID, ttl: Long) {
+        if (!blacklistService.blacklist(jti, ttl))
+            throw InvalidTokenException("Refresh token is blacklisted")
+    }
+
+    private fun isRefreshToken(token: String): Boolean =
+        jwtClaimsService.extractClaim(token) { it["type"] } == TokenType.REFRESH.name.lowercase()
 
     private data class RefreshTokenClaims(val jti: UUID, val ttl: Long)
 }

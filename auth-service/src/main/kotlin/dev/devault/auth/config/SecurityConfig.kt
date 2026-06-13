@@ -51,7 +51,6 @@ class SecurityConfig(
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 
     @Bean
-    fun authenticationManager(config: AuthenticationConfiguration): AuthenticationManager {
-        return config.getAuthenticationManager()
-    }
+    fun authenticationManager(config: AuthenticationConfiguration): AuthenticationManager =
+        config.getAuthenticationManager()
 }
