@@ -3,7 +3,7 @@ package dev.devault.auth.service
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.KeyUse
-import dev.devault.auth.config.KeyProvider
+import dev.devault.auth.security.provider.KeyProvider
 import org.springframework.stereotype.Service
 import com.nimbusds.jose.jwk.OctetKeyPair
 import com.nimbusds.jose.util.Base64URL
@@ -13,8 +13,11 @@ class JwksService(
     keyProvider: KeyProvider
 ) {
     private val publicKey = keyProvider.getPublicKey()
+    private val jwks: Map<String, Any> = buildJwks()
 
-    fun getJwks() : Map<String, Any> {
+    fun getJwks(): Map<String, Any> = jwks
+
+    private fun buildJwks() : Map<String, Any> {
         val encoded = publicKey.encoded
         require(encoded.size >= 32) {
             "Unexpected public key encoding length: ${encoded.size}"

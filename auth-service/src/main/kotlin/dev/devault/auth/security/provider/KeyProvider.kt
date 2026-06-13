@@ -1,5 +1,6 @@
-package dev.devault.auth.config
+package dev.devault.auth.security.provider
 
+import dev.devault.auth.config.properties.JwtProperties
 import org.springframework.stereotype.Component
 import java.security.KeyFactory
 import java.security.PrivateKey
