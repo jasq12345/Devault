@@ -10,6 +10,16 @@ class JwtClaimsService(
     private val jwksClient: JwksClient
 ) {
 
+    fun validate(token: String) {
+        val expiration = extractExpiration(token)
+        if (expiration.before(Date())) {
+            throw IllegalStateException("Token expired")
+        }
+        val issuer = extractClaim(token, Claims::getIssuer)
+        if (issuer != "devault-auth") {
+            throw IllegalStateException("Invalid issuer")
+        }
+    }
     private fun extractAllClaims(token: String): Claims {
         return Jwts.parser()
             .verifyWith(jwksClient.getPublicKey())
