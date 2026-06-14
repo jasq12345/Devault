@@ -1,5 +1,6 @@
 package dev.devault.authlib.security.provider
 
+import dev.devault.authlib.security.principal.AuthenticatedUser
 import dev.devault.authlib.security.token.JwtTokenCandidate
 import dev.devault.authlib.service.JwtClaimsService
 import org.springframework.security.authentication.AuthenticationProvider
@@ -18,11 +19,15 @@ class JwtAuthenticationProvider(
         val token = jwtTokenCandidate.credentials as? String
             ?: return null
 
-        val username = jwtClaimsService.extractUsername(token)
-        val authorities = jwtClaimsService.extractAuthorities(token)
-            .map { SimpleGrantedAuthority(it) }
+        jwtClaimsService.validate(token)
 
-        return UsernamePasswordAuthenticationToken(username, null, authorities)
+        val id = jwtClaimsService.extractId(token)
+        val username = jwtClaimsService.extractUsername(token)
+        val authoritiesList = jwtClaimsService.extractAuthorities(token)
+        val authorities = authoritiesList.map { SimpleGrantedAuthority(it) }
+
+        val principal = AuthenticatedUser(id, username, authoritiesList)
+        return UsernamePasswordAuthenticationToken(principal, null, authorities)
     }
 
     override fun supports(authentication: Class<*>): Boolean =
