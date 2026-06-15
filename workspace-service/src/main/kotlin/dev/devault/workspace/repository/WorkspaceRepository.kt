@@ -8,4 +8,6 @@ import java.util.UUID
 @Repository
 interface WorkspaceRepository : JpaRepository<Workspace, UUID>{
     fun getWorkspaceByOwnerId(ownerId: UUID): MutableList<Workspace>
+    fun existsBySlug(slug: String): Boolean
+    fun findWorkspaceByIdAndOwnerId(id: UUID, ownerId: UUID): Workspace?
 }
