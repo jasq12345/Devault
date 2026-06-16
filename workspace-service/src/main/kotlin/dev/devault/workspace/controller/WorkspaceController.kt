@@ -25,27 +25,42 @@ class WorkspaceController(
 ) {
 
     @GetMapping("")
-    fun findAllWorkspaces(@AuthenticationPrincipal authenticatedUser: AuthenticatedUser): ResponseEntity<MutableList<Workspace>> {
+    fun findAllWorkspaces(
+        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser
+    ): ResponseEntity<MutableList<Workspace>> {
         return ResponseEntity.ok(workspaceService.findAllWorkspaces(authenticatedUser))
     }
 
     @GetMapping("/{id}")
-    fun findWorkspaceById(@AuthenticationPrincipal authenticatedUser: AuthenticatedUser, @PathVariable id: UUID): ResponseEntity<Workspace> {
+    fun findWorkspaceById(
+        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
+        @PathVariable id: UUID
+    ): ResponseEntity<Workspace> {
         return ResponseEntity.ok(workspaceService.findWorkspaceById(authenticatedUser, id))
     }
 
     @PostMapping("")
-    fun saveWorkspace(@AuthenticationPrincipal authenticatedUser: AuthenticatedUser, @RequestBody dto: SaveWorkspaceDto): ResponseEntity<Workspace> {
+    fun saveWorkspace(
+        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
+        @RequestBody dto: SaveWorkspaceDto
+    ): ResponseEntity<Workspace> {
         return ResponseEntity.status(HttpStatus.CREATED).body(workspaceService.saveWorkspace(authenticatedUser, dto))
     }
 
     @PutMapping("/{id}")
-    fun updateWorkspace(@AuthenticationPrincipal authenticatedUser: AuthenticatedUser, @RequestBody dto: UpdateWorkspaceDto, @PathVariable id: UUID): ResponseEntity<Workspace> {
+    fun updateWorkspace(
+        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
+        @RequestBody dto: UpdateWorkspaceDto,
+        @PathVariable id: UUID
+    ): ResponseEntity<Workspace> {
         return ResponseEntity.status(HttpStatus.CREATED).body(workspaceService.updateWorkspace(authenticatedUser, dto, id))
     }
 
     @DeleteMapping("/{id}")
-    fun deleteWorkspace(@AuthenticationPrincipal user: AuthenticatedUser, @PathVariable id: UUID): ResponseEntity<Void> {
+    fun deleteWorkspace(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable id: UUID
+    ): ResponseEntity<Void> {
         workspaceService.deleteWorkspace(user, id)
         return ResponseEntity.noContent().build()
     }

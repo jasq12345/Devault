@@ -7,5 +7,7 @@ import java.util.UUID
 
 @Repository
 interface WorkspaceMemberRepository : JpaRepository<WorkspaceMember, UUID> {
+    fun findWorkspaceMemberByWorkspaceIdAndWorkspaceOwnerId(id: UUID, ownerId: UUID): MutableList<WorkspaceMember>
 
+    fun findWorkspaceMemberByIdAndWorkspaceId(id: UUID, workspaceId: UUID): WorkspaceMember?
 }
