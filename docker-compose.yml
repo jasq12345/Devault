@@ -5,19 +5,23 @@ services:
       context: .
       dockerfile: ./workspace-service/Dockerfile
     ports:
-      - "8082:8080"
+      - "8080:8080"
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_USER_WORKSPACE: ${DB_USER_WORKSPACE}
       DB_PASSWORD_WORKSPACE: ${DB_PASSWORD_WORKSPACE}
       DB_NAME_WORKSPACE: ${DB_NAME_WORKSPACE}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWKS_HOST: ${JWKS_HOST}
     depends_on:
       postgres:
         condition: service_healthy
+    profiles:
+      - prod
 
   auth-service:
-    container_name: ${PROJECT_NAME}-auth-service
+    container_name: ${PROJECT_NAME}-auth
     build:
       context: .
       dockerfile: ./auth-service/Dockerfile
@@ -31,16 +35,19 @@ services:
       DB_NAME_AUTH: ${DB_NAME_AUTH}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
-      AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWKS_HOST: ${JWKS_HOST}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    profiles:
+      - prod
 
   postgres:
     container_name: ${PROJECT_NAME}-postgres

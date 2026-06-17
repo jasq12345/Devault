@@ -7,5 +7,6 @@ data class JwtProperties(
     val privateKey: String,
     val publicKey: String,
     val accessExpiration: Long,
-    val refreshExpiration: Long
+    val refreshExpiration: Long,
+    val issuer: String
 )

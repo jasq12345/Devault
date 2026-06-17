@@ -13,9 +13,7 @@ class JwksClient(
     private val jwksProperties: JwksProperties,
     private val restClient: RestClient
 ) {
-    private val publicKey: PublicKey by lazy { fetchPublicKey() }
-
-    fun getPublicKey(): PublicKey = publicKey
+    val publicKey: PublicKey by lazy { fetchPublicKey() }
 
     private fun fetchPublicKey(): PublicKey {
         try {
