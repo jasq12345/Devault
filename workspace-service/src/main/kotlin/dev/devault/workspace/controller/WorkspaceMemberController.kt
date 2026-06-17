@@ -2,7 +2,7 @@ package dev.devault.workspace.controller
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
 import dev.devault.workspace.dto.request.SaveWorkspaceMemberDto
-import dev.devault.workspace.model.WorkspaceMember
+import dev.devault.workspace.dto.response.WorkspaceMemberResponseDto
 import dev.devault.workspace.service.WorkspaceMemberService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -25,7 +25,7 @@ class WorkspaceMemberController(
     fun findAllMembers(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID
-    ): ResponseEntity<MutableList<WorkspaceMember>> {
+    ): ResponseEntity<MutableList<WorkspaceMemberResponseDto>> {
         return ResponseEntity.ok(workspaceMemberService.findAllMembers(authenticatedUser, workspaceId))
     }
 
@@ -34,7 +34,7 @@ class WorkspaceMemberController(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID,
         @PathVariable id: UUID
-    ): ResponseEntity<WorkspaceMember> {
+    ): ResponseEntity<WorkspaceMemberResponseDto> {
         return ResponseEntity.ok(workspaceMemberService.findWorkspaceMemberById(authenticatedUser, workspaceId, id))
     }
 
@@ -43,7 +43,7 @@ class WorkspaceMemberController(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID,
         @RequestBody dto: SaveWorkspaceMemberDto
-    ): ResponseEntity<WorkspaceMember> {
+    ): ResponseEntity<WorkspaceMemberResponseDto> {
         return ResponseEntity.status(HttpStatus.CREATED).body(workspaceMemberService.saveWorkspaceMember(authenticatedUser, workspaceId, dto))
     }
 

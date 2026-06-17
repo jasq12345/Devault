@@ -3,7 +3,7 @@ package dev.devault.workspace.controller
 import dev.devault.authlib.security.principal.AuthenticatedUser
 import dev.devault.workspace.dto.request.SaveWorkspaceDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceDto
-import dev.devault.workspace.model.Workspace
+import dev.devault.workspace.dto.response.WorkspaceResponseDto
 import dev.devault.workspace.service.WorkspaceService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -27,7 +27,7 @@ class WorkspaceController(
     @GetMapping("")
     fun findAllWorkspaces(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser
-    ): ResponseEntity<MutableList<Workspace>> {
+    ): ResponseEntity<MutableList<WorkspaceResponseDto>> {
         return ResponseEntity.ok(workspaceService.findAllWorkspaces(authenticatedUser))
     }
 
@@ -35,7 +35,7 @@ class WorkspaceController(
     fun findWorkspaceById(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable id: UUID
-    ): ResponseEntity<Workspace> {
+    ): ResponseEntity<WorkspaceResponseDto> {
         return ResponseEntity.ok(workspaceService.findWorkspaceById(authenticatedUser, id))
     }
 
@@ -43,7 +43,7 @@ class WorkspaceController(
     fun saveWorkspace(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @RequestBody dto: SaveWorkspaceDto
-    ): ResponseEntity<Workspace> {
+    ): ResponseEntity<WorkspaceResponseDto> {
         return ResponseEntity.status(HttpStatus.CREATED).body(workspaceService.saveWorkspace(authenticatedUser, dto))
     }
 
@@ -52,7 +52,7 @@ class WorkspaceController(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @RequestBody dto: UpdateWorkspaceDto,
         @PathVariable id: UUID
-    ): ResponseEntity<Workspace> {
+    ): ResponseEntity<WorkspaceResponseDto> {
         return ResponseEntity.status(HttpStatus.CREATED).body(workspaceService.updateWorkspace(authenticatedUser, dto, id))
     }
 

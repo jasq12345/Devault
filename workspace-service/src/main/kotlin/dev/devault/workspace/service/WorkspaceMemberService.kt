@@ -2,6 +2,8 @@ package dev.devault.workspace.service
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
 import dev.devault.workspace.dto.request.SaveWorkspaceMemberDto
+import dev.devault.workspace.dto.response.WorkspaceMemberResponseDto
+import dev.devault.workspace.dto.response.toResponse
 import dev.devault.workspace.model.WorkspaceMember
 import dev.devault.workspace.repository.WorkspaceMemberRepository
 import dev.devault.workspace.type.WorkspaceRole
@@ -13,22 +15,25 @@ import java.util.UUID
 class WorkspaceMemberService(
     private val repository: WorkspaceMemberRepository
 ) {
-    fun findAllMembers(authenticatedUser: AuthenticatedUser, workspaceId: UUID): MutableList<WorkspaceMember> {
+    fun findAllMembers(authenticatedUser: AuthenticatedUser, workspaceId: UUID): MutableList<WorkspaceMemberResponseDto> {
         val members = repository.findAllByWorkspaceId(workspaceId)
         if (members.none { it.userId == authenticatedUser.id })
             throw AccessDeniedException("Access denied")
-        return members
+
+        return members.map { it.toResponse() }.toMutableList()
     }
 
-    fun findWorkspaceMemberById(authenticatedUser: AuthenticatedUser, workspaceId: UUID, id: UUID): WorkspaceMember {
+    fun findWorkspaceMemberById(authenticatedUser: AuthenticatedUser, workspaceId: UUID, id: UUID): WorkspaceMemberResponseDto {
         if (!repository.existsByWorkspaceIdAndUserId(workspaceId, authenticatedUser.id))
             throw AccessDeniedException("Access denied")
 
-        return repository.findByIdAndWorkspaceId(id, workspaceId)
+        val member = repository.findByIdAndWorkspaceId(id, workspaceId)
             ?: throw NoSuchElementException("Workspace member not found")
+
+        return member.toResponse()
     }
 
-    fun saveWorkspaceMember(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: SaveWorkspaceMemberDto): WorkspaceMember {
+    fun saveWorkspaceMember(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: SaveWorkspaceMemberDto): WorkspaceMemberResponseDto {
         val members = repository.findAllByWorkspaceId(workspaceId)
 
         if (members.none { it.userId == authenticatedUser.id && it.role in listOf(WorkspaceRole.OWNER, WorkspaceRole.ADMIN) })
@@ -43,7 +48,7 @@ class WorkspaceMemberService(
             workspace = members.first().workspace
         )
 
-        return repository.save(member)
+        return repository.save(member).toResponse()
     }
 
     fun deleteWorkspaceMember(authenticatedUser: AuthenticatedUser, workspaceId: UUID, id: UUID) {
