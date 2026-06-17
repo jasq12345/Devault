@@ -7,7 +7,8 @@ import java.util.UUID
 
 @Repository
 interface WorkspaceMemberRepository : JpaRepository<WorkspaceMember, UUID> {
-    fun findWorkspaceMemberByWorkspaceIdAndWorkspaceOwnerId(id: UUID, ownerId: UUID): MutableList<WorkspaceMember>
-
-    fun findWorkspaceMemberByIdAndWorkspaceId(id: UUID, workspaceId: UUID): WorkspaceMember?
+    fun findAllByWorkspaceId(workspaceId: UUID): MutableList<WorkspaceMember>
+    fun existsByWorkspaceIdAndUserId(workspaceId: UUID, userId: UUID): Boolean
+    fun findByIdAndWorkspaceId(id: UUID, workspaceId: UUID): WorkspaceMember?
+    fun findWorkspaceMemberByWorkspaceIdAndUserId(workspaceId: UUID, id: UUID): WorkspaceMember?
 }

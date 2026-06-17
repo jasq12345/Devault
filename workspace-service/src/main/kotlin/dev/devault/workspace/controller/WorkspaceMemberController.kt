@@ -7,6 +7,7 @@ import dev.devault.workspace.service.WorkspaceMemberService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -44,5 +45,15 @@ class WorkspaceMemberController(
         @RequestBody dto: SaveWorkspaceMemberDto
     ): ResponseEntity<WorkspaceMember> {
         return ResponseEntity.status(HttpStatus.CREATED).body(workspaceMemberService.saveWorkspaceMember(authenticatedUser, workspaceId, dto))
+    }
+
+    @DeleteMapping("/{id}")
+    fun deleteWorkspaceMember(
+        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
+        @PathVariable workspaceId: UUID,
+        @PathVariable id: UUID
+    ): ResponseEntity<Void> {
+        workspaceMemberService.deleteWorkspaceMember(authenticatedUser, workspaceId, id)
+        return ResponseEntity.noContent().build()
     }
 }
