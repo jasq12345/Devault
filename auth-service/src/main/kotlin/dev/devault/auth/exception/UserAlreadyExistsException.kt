@@ -1,3 +1,3 @@
 package dev.devault.auth.exception
 
-class UserAlreadyExistsException(msg: String) : RuntimeException(msg)
+class UserAlreadyExistsException(message: String) : RuntimeException(message)

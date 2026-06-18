@@ -11,4 +11,6 @@ interface WorkspaceMemberRepository : JpaRepository<WorkspaceMember, UUID> {
     fun existsByWorkspaceIdAndUserId(workspaceId: UUID, userId: UUID): Boolean
     fun findByIdAndWorkspaceId(id: UUID, workspaceId: UUID): WorkspaceMember?
     fun findWorkspaceMemberByWorkspaceIdAndUserId(workspaceId: UUID, id: UUID): WorkspaceMember?
+    fun findByUserId(userId: UUID): MutableList<WorkspaceMember>
+    fun existsByWorkspaceId(workspaceId: UUID): Boolean
 }

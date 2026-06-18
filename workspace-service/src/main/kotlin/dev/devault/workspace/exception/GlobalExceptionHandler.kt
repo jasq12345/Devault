@@ -1,32 +1,31 @@
-package dev.devault.auth.exception
+package dev.devault.workspace.exception
 
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.BadCredentialsException
-import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.security.access.AccessDeniedException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
-
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     private fun errorResponse(message: String, status: HttpStatus) =
         ResponseEntity.status(status).body(mapOf("error" to message))
 
-    @ExceptionHandler(UsernameNotFoundException::class)
-    fun handleUsernameNotFound(ex: UsernameNotFoundException) =
-        errorResponse("Invalid credentials", HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(ConflictException::class)
+    fun handleConflicts(ex: ConflictException) =
+        errorResponse(ex.message ?: "Unknown error", HttpStatus.CONFLICT)
 
-    @ExceptionHandler(InvalidTokenException::class)
-    fun handleInvalidToken(ex: InvalidTokenException) =
-        errorResponse(ex.message ?: "Unknown error", HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(NoSuchElementException::class)
+    fun handleNotFound(ex: NoSuchElementException) =
+        errorResponse(ex.message ?: "Not found", HttpStatus.NOT_FOUND)
 
-    @ExceptionHandler(UsernameNotFoundException::class)
-    fun handleNotFound(ex: UsernameNotFoundException) =
-        errorResponse(ex.message ?: "Unknown error", HttpStatus.NOT_FOUND)
+    @ExceptionHandler(AccessDeniedException::class)
+    fun handleAccessDenied(ex: AccessDeniedException) =
+        errorResponse(ex.message ?: "Access denied", HttpStatus.FORBIDDEN)
 
     @ExceptionHandler(BadCredentialsException::class)
     fun handleBadCredentials(ex: BadCredentialsException) =
