@@ -2,6 +2,7 @@ package dev.devault.workspace.controller
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
 import dev.devault.workspace.dto.request.SaveWorkspaceMemberDto
+import dev.devault.workspace.dto.request.TransferOwnershipDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceMemberRoleDto
 import dev.devault.workspace.dto.response.WorkspaceMemberResponseDto
 import dev.devault.workspace.service.WorkspaceMemberService
@@ -27,7 +28,7 @@ class WorkspaceMemberController(
     fun findAllMembers(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID
-    ): ResponseEntity<MutableList<WorkspaceMemberResponseDto>> {
+    ): ResponseEntity<List<WorkspaceMemberResponseDto>> {
         return ResponseEntity.ok(workspaceMemberService.findAllMembers(authenticatedUser, workspaceId))
     }
 
@@ -59,13 +60,22 @@ class WorkspaceMemberController(
         return ResponseEntity.noContent().build()
     }
 
-    @PatchMapping("/{id}/roles")
+    @PatchMapping("/{id}/role")
     fun updateMemberRole(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID,
         @PathVariable id: UUID,
         @RequestBody dto: UpdateWorkspaceMemberRoleDto
     ): ResponseEntity<WorkspaceMemberResponseDto> {
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(workspaceMemberService.updateMemberRole(authenticatedUser, workspaceId, id, dto))
+        return ResponseEntity.ok(workspaceMemberService.updateMemberRole(authenticatedUser, workspaceId, id, dto))
+    }
+
+    @PostMapping("/transfer-ownership")
+    fun transferWorkspaceOwnerShip(
+        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
+        @PathVariable workspaceId: UUID,
+        @RequestBody dto: TransferOwnershipDto
+    ): ResponseEntity<List<WorkspaceMemberResponseDto>> {
+        return ResponseEntity.ok(workspaceMemberService.transferOwnership(authenticatedUser, workspaceId, dto))
     }
 }

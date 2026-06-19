@@ -27,6 +27,10 @@ class GlobalExceptionHandler {
     fun handleAccessDenied(ex: AccessDeniedException) =
         errorResponse(ex.message ?: "Access denied", HttpStatus.FORBIDDEN)
 
+    @ExceptionHandler(CannotModifyOwnerException::class)
+    fun handleCannotModifyOwner(ex: CannotModifyOwnerException) =
+        errorResponse(ex.message ?: "Cannot modify owner", HttpStatus.FORBIDDEN)
+
     @ExceptionHandler(BadCredentialsException::class)
     fun handleBadCredentials(ex: BadCredentialsException) =
         errorResponse("Invalid credentials", HttpStatus.UNAUTHORIZED)
