@@ -18,10 +18,10 @@ class WorkspaceService(
     private val repository: WorkspaceRepository,
     private val workspaceMemberService: WorkspaceMemberService
 ) {
-    fun findAllWorkspaces(authenticatedUser: AuthenticatedUser): MutableList<WorkspaceResponseDto> {
+    fun findAllWorkspaces(authenticatedUser: AuthenticatedUser): List<WorkspaceResponseDto> {
         val memberships = workspaceMemberService.findWorkspacesByUserId(authenticatedUser.id)
 
-        return memberships.map { it.workspace.toResponse() }.toMutableList()
+        return memberships.map { it.workspace.toResponse() }.toList()
     }
 
     fun findWorkspaceById(authenticatedUser: AuthenticatedUser, id: UUID): WorkspaceResponseDto {

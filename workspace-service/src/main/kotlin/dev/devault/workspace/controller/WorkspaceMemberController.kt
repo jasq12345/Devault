@@ -1,6 +1,7 @@
 package dev.devault.workspace.controller
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
+import dev.devault.workspace.common.ApiResponse
 import dev.devault.workspace.dto.request.SaveWorkspaceMemberDto
 import dev.devault.workspace.dto.request.TransferOwnershipDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceMemberRoleDto
@@ -28,8 +29,8 @@ class WorkspaceMemberController(
     fun findAllMembers(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID
-    ): ResponseEntity<List<WorkspaceMemberResponseDto>> {
-        return ResponseEntity.ok(workspaceMemberService.findAllMembers(authenticatedUser, workspaceId))
+    ): ResponseEntity<ApiResponse<List<WorkspaceMemberResponseDto>>> {
+        return ResponseEntity.ok(ApiResponse.ok(workspaceMemberService.findAllMembers(authenticatedUser, workspaceId)))
     }
 
     @GetMapping("/{id}")
@@ -37,8 +38,8 @@ class WorkspaceMemberController(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID,
         @PathVariable id: UUID
-    ): ResponseEntity<WorkspaceMemberResponseDto> {
-        return ResponseEntity.ok(workspaceMemberService.findWorkspaceMemberById(authenticatedUser, workspaceId, id))
+    ): ResponseEntity<ApiResponse<WorkspaceMemberResponseDto>> {
+        return ResponseEntity.ok(ApiResponse.ok(workspaceMemberService.findWorkspaceMemberById(authenticatedUser, workspaceId, id)))
     }
 
     @PostMapping("")
@@ -46,8 +47,8 @@ class WorkspaceMemberController(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID,
         @RequestBody dto: SaveWorkspaceMemberDto
-    ): ResponseEntity<WorkspaceMemberResponseDto> {
-        return ResponseEntity.status(HttpStatus.CREATED).body(workspaceMemberService.saveWorkspaceMember(authenticatedUser, workspaceId, dto))
+    ): ResponseEntity<ApiResponse<WorkspaceMemberResponseDto>> {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(workspaceMemberService.saveWorkspaceMember(authenticatedUser, workspaceId, dto)))
     }
 
     @DeleteMapping("/{id}")
@@ -66,16 +67,16 @@ class WorkspaceMemberController(
         @PathVariable workspaceId: UUID,
         @PathVariable id: UUID,
         @RequestBody dto: UpdateWorkspaceMemberRoleDto
-    ): ResponseEntity<WorkspaceMemberResponseDto> {
-        return ResponseEntity.ok(workspaceMemberService.updateMemberRole(authenticatedUser, workspaceId, id, dto))
+    ): ResponseEntity<ApiResponse<WorkspaceMemberResponseDto>> {
+        return ResponseEntity.ok(ApiResponse.ok(workspaceMemberService.updateMemberRole(authenticatedUser, workspaceId, id, dto)))
     }
 
     @PostMapping("/transfer-ownership")
-    fun transferWorkspaceOwnerShip(
+    fun transferWorkspaceOwnership(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID,
         @RequestBody dto: TransferOwnershipDto
-    ): ResponseEntity<List<WorkspaceMemberResponseDto>> {
-        return ResponseEntity.ok(workspaceMemberService.transferOwnership(authenticatedUser, workspaceId, dto))
+    ): ResponseEntity<ApiResponse<List<WorkspaceMemberResponseDto>>> {
+        return ResponseEntity.ok(ApiResponse.ok(workspaceMemberService.transferOwnership(authenticatedUser, workspaceId, dto)))
     }
 }

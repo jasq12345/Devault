@@ -1,5 +1,6 @@
 package dev.devault.workspace.exception
 
+import dev.devault.workspace.common.ApiResponse
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -12,8 +13,8 @@ import org.springframework.security.access.AccessDeniedException
 class GlobalExceptionHandler {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
-    private fun errorResponse(message: String, status: HttpStatus) =
-        ResponseEntity.status(status).body(mapOf("error" to message))
+    private fun errorResponse(message: String, status: HttpStatus, code: String? = null) =
+        ResponseEntity.status(status).body(ApiResponse.error(message, code))
 
     @ExceptionHandler(ConflictException::class)
     fun handleConflicts(ex: ConflictException) =
@@ -40,13 +41,13 @@ class GlobalExceptionHandler {
         errorResponse("Invalid request", HttpStatus.BAD_REQUEST)
 
     @ExceptionHandler(IllegalStateException::class)
-    fun handleIllegalState(ex: IllegalStateException): ResponseEntity<Map<String, String>> {
+    fun handleIllegalState(ex: IllegalStateException): ResponseEntity<ApiResponse<Nothing>> {
         logger.error("Internal error", ex)
         return errorResponse("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR)
     }
 
     @ExceptionHandler(Exception::class)
-    fun handleUnexpected(ex: Exception): ResponseEntity<Map<String, String>> {
+    fun handleUnexpected(ex: Exception): ResponseEntity<ApiResponse<Nothing>> {
         logger.error("Unexpected error", ex)
         return errorResponse("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR)
     }

@@ -1,6 +1,7 @@
 package dev.devault.workspace.controller
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
+import dev.devault.workspace.common.ApiResponse
 import dev.devault.workspace.dto.request.SaveWorkspaceDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceDto
 import dev.devault.workspace.dto.response.WorkspaceResponseDto
@@ -23,28 +24,27 @@ import java.util.UUID
 class WorkspaceController(
     private val workspaceService: WorkspaceService
 ) {
-
     @GetMapping("")
     fun findAllWorkspaces(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser
-    ): ResponseEntity<MutableList<WorkspaceResponseDto>> {
-        return ResponseEntity.ok(workspaceService.findAllWorkspaces(authenticatedUser))
+    ): ResponseEntity<ApiResponse<List<WorkspaceResponseDto>>> {
+        return ResponseEntity.ok(ApiResponse.ok(workspaceService.findAllWorkspaces(authenticatedUser)))
     }
 
     @GetMapping("/{id}")
     fun findWorkspaceById(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable id: UUID
-    ): ResponseEntity<WorkspaceResponseDto> {
-        return ResponseEntity.ok(workspaceService.findWorkspaceById(authenticatedUser, id))
+    ): ResponseEntity<ApiResponse<WorkspaceResponseDto>> {
+        return ResponseEntity.ok(ApiResponse.ok(workspaceService.findWorkspaceById(authenticatedUser, id)))
     }
 
     @PostMapping("")
     fun saveWorkspace(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @RequestBody dto: SaveWorkspaceDto
-    ): ResponseEntity<WorkspaceResponseDto> {
-        return ResponseEntity.status(HttpStatus.CREATED).body(workspaceService.saveWorkspace(authenticatedUser, dto))
+    ): ResponseEntity<ApiResponse<WorkspaceResponseDto>> {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(workspaceService.saveWorkspace(authenticatedUser, dto)))
     }
 
     @PutMapping("/{id}")
@@ -52,8 +52,8 @@ class WorkspaceController(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @RequestBody dto: UpdateWorkspaceDto,
         @PathVariable id: UUID
-    ): ResponseEntity<WorkspaceResponseDto> {
-        return ResponseEntity.status(HttpStatus.CREATED).body(workspaceService.updateWorkspace(authenticatedUser, dto, id))
+    ): ResponseEntity<ApiResponse<WorkspaceResponseDto>> {
+        return ResponseEntity.ok(ApiResponse.ok(workspaceService.updateWorkspace(authenticatedUser, dto, id)))
     }
 
     @DeleteMapping("/{id}")
