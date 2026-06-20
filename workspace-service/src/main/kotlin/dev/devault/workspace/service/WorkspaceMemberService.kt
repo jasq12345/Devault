@@ -94,6 +94,35 @@ class WorkspaceMemberService(
         return repository.save(member).toResponse()
     }
 
+    @Transactional
+    fun transferOwnership(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: TransferOwnershipDto): List<WorkspaceMemberResponseDto> {
+        if (dto.newOwnerId == authenticatedUser.id)
+            throw IllegalArgumentException("Cannot transfer ownership to yourself")
+
+        val members = repository.findAllByWorkspaceId(workspaceId)
+        if (members.isEmpty())
+            throw NoSuchElementException("Workspace not found")
+
+        val currentOwner = members.find { it.userId == authenticatedUser.id }
+            ?: throw AccessDeniedException("Access denied")
+        if (currentOwner.role != WorkspaceRole.OWNER)
+            throw AccessDeniedException("Access denied")
+
+        val newOwner = members.find { it.userId == dto.newOwnerId }
+
+        val savedNewOwner = if (newOwner != null) {
+            newOwner.role = WorkspaceRole.OWNER
+            repository.save(newOwner)
+        } else {
+            addOwner(currentOwner.workspace, dto.newOwnerId)
+        }
+
+        currentOwner.role = WorkspaceRole.ADMIN
+        val savedCurrentOwner = repository.save(currentOwner)
+
+        return listOf(savedCurrentOwner.toResponse(), savedNewOwner.toResponse())
+    }
+
     private fun requireRole(workspaceId: UUID, userId: UUID, roles: List<WorkspaceRole>): WorkspaceMember {
         if (!repository.existsByWorkspaceId(workspaceId))
             throw NoSuchElementException("Workspace not found")
@@ -133,34 +162,5 @@ class WorkspaceMemberService(
 
     fun isMember(workspaceId: UUID, userId: UUID): Boolean {
         return repository.existsByWorkspaceIdAndUserId(workspaceId, userId)
-    }
-
-    @Transactional
-    fun transferOwnership(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: TransferOwnershipDto): List<WorkspaceMemberResponseDto> {
-        if (dto.newOwnerId == authenticatedUser.id)
-            throw IllegalArgumentException("Cannot transfer ownership to yourself")
-
-        val members = repository.findAllByWorkspaceId(workspaceId)
-        if (members.isEmpty())
-            throw NoSuchElementException("Workspace not found")
-
-        val currentOwner = members.find { it.userId == authenticatedUser.id }
-            ?: throw AccessDeniedException("Access denied")
-        if (currentOwner.role != WorkspaceRole.OWNER)
-            throw AccessDeniedException("Access denied")
-
-        val newOwner = members.find { it.userId == dto.newOwnerId }
-
-        val savedNewOwner = if (newOwner != null) {
-            newOwner.role = WorkspaceRole.OWNER
-            repository.save(newOwner)
-        } else {
-            addOwner(currentOwner.workspace, dto.newOwnerId)
-        }
-
-        currentOwner.role = WorkspaceRole.ADMIN
-        val savedCurrentOwner = repository.save(currentOwner)
-
-        return listOf(savedCurrentOwner.toResponse(), savedNewOwner.toResponse())
     }
 }
