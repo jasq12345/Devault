@@ -21,6 +21,6 @@ class Workspace(
     @Column(unique = true, nullable = false)
     var slug: String,
 
-    @Column(nullable = false, name = "order_id")
+    @Column(nullable = false, name = "owner_id")
     var ownerId: UUID
 )

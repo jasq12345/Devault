@@ -1,7 +1,7 @@
 package dev.devault.workspace.controller
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
-import dev.devault.workspace.common.ApiResponse
+import dev.devault.commonlib.response.ApiResponse
 import dev.devault.workspace.dto.request.SaveWorkspaceDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceDto
 import dev.devault.workspace.dto.response.WorkspaceResponseDto

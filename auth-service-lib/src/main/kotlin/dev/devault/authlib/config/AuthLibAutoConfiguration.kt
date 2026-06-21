@@ -3,8 +3,11 @@ package dev.devault.authlib.config
 import dev.devault.authlib.config.properties.JwksProperties
 import dev.devault.authlib.config.properties.JwtProperties
 import dev.devault.authlib.filter.JwtAuthenticationFilter
+import dev.devault.authlib.security.entrypoint.AuthLibAuthenticationEntryPoint
 import dev.devault.authlib.security.provider.JwtAuthenticationProvider
 import dev.devault.authlib.service.JwtClaimsService
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -22,21 +25,33 @@ class AuthLibAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(SecurityFilterChain::class)
-    fun securityFilterChain(http: HttpSecurity, jwtAuthenticationFilter: JwtAuthenticationFilter): SecurityFilterChain {
+    fun securityFilterChain(
+        http: HttpSecurity,
+        jwtAuthenticationFilter: JwtAuthenticationFilter,
+        authenticationEntryPoint: AuthLibAuthenticationEntryPoint
+    ): SecurityFilterChain {
         return http
             .csrf { it.disable() }
             .authorizeHttpRequests { it.anyRequest().authenticated() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .exceptionHandling { it.authenticationEntryPoint(authenticationEntryPoint) }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .build()
     }
 
     @Bean
+    fun authenticationEntryPoint(): AuthLibAuthenticationEntryPoint =
+        AuthLibAuthenticationEntryPoint(ObjectMapper().registerKotlinModule())
+
+    @Bean
     fun restClient(): RestClient = RestClient.create()
 
     @Bean
-    fun jwtAuthenticationFilter(jwtAuthenticationProvider: JwtAuthenticationProvider): JwtAuthenticationFilter =
-        JwtAuthenticationFilter(jwtAuthenticationProvider)
+    fun jwtAuthenticationFilter(
+        jwtAuthenticationProvider: JwtAuthenticationProvider,
+        authenticationEntryPoint: AuthLibAuthenticationEntryPoint
+    ): JwtAuthenticationFilter =
+        JwtAuthenticationFilter(jwtAuthenticationProvider, authenticationEntryPoint)
 
     @Bean
     fun jwtClaimsService(jwksClient: JwksClient, jwtProperties: JwtProperties): JwtClaimsService =

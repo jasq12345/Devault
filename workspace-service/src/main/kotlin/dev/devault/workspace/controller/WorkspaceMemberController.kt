@@ -1,7 +1,7 @@
 package dev.devault.workspace.controller
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
-import dev.devault.workspace.common.ApiResponse
+import dev.devault.commonlib.response.ApiResponse
 import dev.devault.workspace.dto.request.SaveWorkspaceMemberDto
 import dev.devault.workspace.dto.request.TransferOwnershipDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceMemberRoleDto
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/workspaces/{workspaceId}/members")
+@RequestMapping("/api/v1/workspaces/{workspaceId}/members")
 class WorkspaceMemberController(
     private val workspaceMemberService: WorkspaceMemberService
 ) {
