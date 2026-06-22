@@ -7,6 +7,7 @@ import dev.devault.workspace.dto.request.TransferOwnershipDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceMemberRoleDto
 import dev.devault.workspace.dto.response.WorkspaceMemberResponseDto
 import dev.devault.workspace.service.WorkspaceMemberService
+import dev.devault.workspace.service.WorkspaceService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -23,7 +24,8 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/v1/workspaces/{workspaceId}/members")
 class WorkspaceMemberController(
-    private val workspaceMemberService: WorkspaceMemberService
+    private val workspaceMemberService: WorkspaceMemberService,
+    private val workspaceService: WorkspaceService
 ) {
     @GetMapping("")
     fun findAllMembers(
@@ -77,6 +79,6 @@ class WorkspaceMemberController(
         @PathVariable workspaceId: UUID,
         @RequestBody dto: TransferOwnershipDto
     ): ResponseEntity<ApiResponse<List<WorkspaceMemberResponseDto>>> {
-        return ResponseEntity.ok(ApiResponse.ok(workspaceMemberService.transferOwnership(authenticatedUser, workspaceId, dto)))
+        return ResponseEntity.ok(ApiResponse.ok(workspaceService.transferOwnership(authenticatedUser, workspaceId, dto)))
     }
 }

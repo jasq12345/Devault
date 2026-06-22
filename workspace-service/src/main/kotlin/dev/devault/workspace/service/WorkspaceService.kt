@@ -2,12 +2,15 @@ package dev.devault.workspace.service
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
 import dev.devault.workspace.dto.request.SaveWorkspaceDto
+import dev.devault.workspace.dto.request.TransferOwnershipDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceDto
+import dev.devault.workspace.dto.response.WorkspaceMemberResponseDto
 import dev.devault.workspace.dto.response.WorkspaceResponseDto
 import dev.devault.workspace.dto.response.toResponse
 import dev.devault.workspace.exception.SlugAlreadyExistsException
 import dev.devault.workspace.model.Workspace
 import dev.devault.workspace.repository.WorkspaceRepository
+import dev.devault.workspace.type.WorkspaceRole
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -63,6 +66,7 @@ class WorkspaceService(
         return repository.save(workspace).toResponse()
     }
 
+    @Transactional
     fun deleteWorkspace(authenticatedUser: AuthenticatedUser, id: UUID) {
         val workspace = repository.findById(id)
             .orElseThrow { NoSuchElementException("Workspace not found") }
@@ -70,6 +74,43 @@ class WorkspaceService(
         if (workspace.ownerId != authenticatedUser.id)
             throw AccessDeniedException("Access denied")
 
+        workspaceMemberService.deleteAllByWorkspaceId(id)
         repository.delete(workspace)
+    }
+
+    fun changeOwner(workspace: Workspace, ownerId: UUID){
+        workspace.ownerId = ownerId
+        repository.save(workspace)
+    }
+
+    @Transactional
+    fun transferOwnership(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: TransferOwnershipDto): List<WorkspaceMemberResponseDto> {
+        if (dto.newOwnerId == authenticatedUser.id)
+            throw IllegalArgumentException("Cannot transfer ownership to yourself")
+
+        val members = workspaceMemberService.findAllByWorkspaceId(workspaceId)
+        if (members.isEmpty())
+            throw NoSuchElementException("Workspace not found")
+
+        val currentOwner = members.find { it.userId == authenticatedUser.id }
+            ?: throw AccessDeniedException("Access denied")
+        if (currentOwner.role != WorkspaceRole.OWNER)
+            throw AccessDeniedException("Access denied")
+
+        val newOwner = members.find { it.userId == dto.newOwnerId }
+
+        val savedNewOwner = if (newOwner != null) {
+            newOwner.role = WorkspaceRole.OWNER
+            workspaceMemberService.saveMember(newOwner)
+        } else {
+            workspaceMemberService.addOwner(currentOwner.workspace, dto.newOwnerId)
+        }
+
+        currentOwner.role = WorkspaceRole.ADMIN
+        val savedCurrentOwner = workspaceMemberService.saveMember(currentOwner)
+
+        changeOwner(savedNewOwner.workspace, savedNewOwner.userId)
+
+        return listOf(savedCurrentOwner.toResponse(), savedNewOwner.toResponse())
     }
 }
