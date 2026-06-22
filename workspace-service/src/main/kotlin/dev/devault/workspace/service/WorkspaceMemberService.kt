@@ -110,9 +110,10 @@ class WorkspaceMemberService(
         if (member.role == WorkspaceRole.OWNER)
             throw CannotModifyOwnerException("Cannot change the owner's role")
 
+        if (newRole == WorkspaceRole.OWNER)
+            throw AccessDeniedException("Cannot grant ownership through role update")
+
         if (authenticatedMember.role == WorkspaceRole.ADMIN) {
-            if (newRole == WorkspaceRole.OWNER)
-                throw AccessDeniedException("Admins cannot grant ownership")
             if (member.role == WorkspaceRole.ADMIN)
                 throw AccessDeniedException("Admins cannot modify other admins")
         }
