@@ -1,12 +1,10 @@
 package dev.devault.authlib.filter
 
-import dev.devault.authlib.security.entrypoint.AuthLibAuthenticationEntryPoint
 import dev.devault.authlib.security.provider.JwtAuthenticationProvider
 import dev.devault.authlib.security.token.JwtTokenCandidate
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
@@ -14,8 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
 class JwtAuthenticationFilter(
-    private val jwtProvider: JwtAuthenticationProvider,
-    private val entryPoint: AuthLibAuthenticationEntryPoint
+    private val jwtProvider: JwtAuthenticationProvider
 ) : OncePerRequestFilter() {
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -41,9 +38,9 @@ class JwtAuthenticationFilter(
                     filterChain.doFilter(request, response)
                     return
                 }
-        } catch (ex: Exception) {
+        }  catch (_: Exception) {
             SecurityContextHolder.clearContext()
-            entryPoint.commence(request, response, BadCredentialsException("Invalid or expired token", ex))
+            filterChain.doFilter(request, response)
             return
         }
         SecurityContextHolder.getContext().authentication = authToken

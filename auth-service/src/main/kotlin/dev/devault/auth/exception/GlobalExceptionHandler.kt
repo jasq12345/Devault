@@ -1,6 +1,6 @@
 package dev.devault.auth.exception
 
-import dev.devault.commonlib.exception.apiError
+import dev.devault.commonlib.response.apiError
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.web.bind.annotation.ExceptionHandler

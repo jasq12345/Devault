@@ -1,6 +1,7 @@
 package dev.devault.workspace.service
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
+import dev.devault.commonlib.exception.InvalidOperationException
 import dev.devault.workspace.dto.request.SaveWorkspaceDto
 import dev.devault.workspace.dto.request.TransferOwnershipDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceDto
@@ -98,13 +99,10 @@ class WorkspaceService(
             throw AccessDeniedException("Access denied")
 
         val newOwner = members.find { it.userId == dto.newOwnerId }
+            ?: throw InvalidOperationException("New owner must already be a member of this workspace")
 
-        val savedNewOwner = if (newOwner != null) {
-            newOwner.role = WorkspaceRole.OWNER
-            workspaceMemberService.saveMember(newOwner)
-        } else {
-            workspaceMemberService.addOwner(currentOwner.workspace, dto.newOwnerId)
-        }
+        newOwner.role = WorkspaceRole.OWNER
+        val savedNewOwner = workspaceMemberService.saveMember(newOwner)
 
         currentOwner.role = WorkspaceRole.ADMIN
         val savedCurrentOwner = workspaceMemberService.saveMember(currentOwner)

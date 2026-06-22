@@ -32,7 +32,10 @@ class AuthLibAutoConfiguration {
     ): SecurityFilterChain {
         return http
             .csrf { it.disable() }
-            .authorizeHttpRequests { it.anyRequest().authenticated() }
+            .authorizeHttpRequests {
+                it.requestMatchers("/actuator/health").permitAll()
+                it.anyRequest().authenticated()
+            }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .exceptionHandling { it.authenticationEntryPoint(authenticationEntryPoint) }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
@@ -49,9 +52,8 @@ class AuthLibAutoConfiguration {
     @Bean
     fun jwtAuthenticationFilter(
         jwtAuthenticationProvider: JwtAuthenticationProvider,
-        authenticationEntryPoint: AuthLibAuthenticationEntryPoint
     ): JwtAuthenticationFilter =
-        JwtAuthenticationFilter(jwtAuthenticationProvider, authenticationEntryPoint)
+        JwtAuthenticationFilter(jwtAuthenticationProvider)
 
     @Bean
     fun jwtClaimsService(jwksClient: JwksClient, jwtProperties: JwtProperties): JwtClaimsService =

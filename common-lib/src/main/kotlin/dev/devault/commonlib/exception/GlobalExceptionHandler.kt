@@ -1,6 +1,7 @@
 package dev.devault.commonlib.exception
 
 import dev.devault.commonlib.response.ApiResponse
+import dev.devault.commonlib.response.apiError
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -8,9 +9,6 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
-
-fun apiError(message: String, status: HttpStatus, code: String? = null): ResponseEntity<ApiResponse<Nothing>> =
-    ResponseEntity.status(status).body(ApiResponse.error(message, code))
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -32,9 +30,13 @@ class GlobalExceptionHandler {
     fun handleBadCredentials(ex: BadCredentialsException) =
         apiError("Invalid credentials", HttpStatus.UNAUTHORIZED)
 
+    @ExceptionHandler(InvalidOperationException::class)
+    fun handleInvalidOperation(ex: InvalidOperationException) =
+        apiError(ex.message ?: "Invalid operation", HttpStatus.BAD_REQUEST)
+
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleIllegalArgument(ex: IllegalArgumentException) =
-        apiError("Invalid request", HttpStatus.BAD_REQUEST)
+        apiError( "Invalid request", HttpStatus.BAD_REQUEST)
 
     @ExceptionHandler(IllegalStateException::class)
     fun handleIllegalState(ex: IllegalStateException): ResponseEntity<ApiResponse<Nothing>> {
