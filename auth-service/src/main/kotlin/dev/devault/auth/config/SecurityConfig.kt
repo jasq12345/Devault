@@ -29,6 +29,7 @@ class SecurityConfig(
             .authorizeHttpRequests { authorize ->
                 authorize.requestMatchers("/.well-known/jwks.json").permitAll()
                 authorize.requestMatchers("/api/v1/auth/**").permitAll()
+                authorize.requestMatchers("/actuator/health").permitAll()
                 authorize.anyRequest().authenticated()
             }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }

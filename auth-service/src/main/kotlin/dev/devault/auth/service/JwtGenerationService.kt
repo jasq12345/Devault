@@ -36,6 +36,7 @@ class JwtGenerationService(
         return Jwts.builder()
             .claims(claims)
             .subject(id.toString())
+            .issuer(jwtProperties.issuer)
             .issuedAt(Date())
             .expiration(
                 if(access == TokenType.ACCESS) Date(System.currentTimeMillis() + jwtProperties.accessExpiration)

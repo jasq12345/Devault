@@ -1,4 +1,4 @@
-package dev.devault.workspace.common
+package dev.devault.commonlib.response
 
 data class ApiResponse<T>(
     val success: Boolean,

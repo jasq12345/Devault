@@ -1,13 +1,15 @@
 package dev.devault.authlib.service
 
 import dev.devault.authlib.config.JwksClient
+import dev.devault.authlib.config.properties.JwtProperties
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import java.util.Date
 import java.util.UUID
 
 class JwtClaimsService(
-    private val jwksClient: JwksClient
+    private val jwksClient: JwksClient,
+    private val jwtProperties: JwtProperties
 ) {
 
     fun validate(token: String) {
@@ -16,13 +18,13 @@ class JwtClaimsService(
             throw IllegalStateException("Token expired")
         }
         val issuer = extractClaim(token, Claims::getIssuer)
-        if (issuer != "devault-auth") {
+        if (issuer != jwtProperties.issuer) {
             throw IllegalStateException("Invalid issuer")
         }
     }
     private fun extractAllClaims(token: String): Claims {
         return Jwts.parser()
-            .verifyWith(jwksClient.getPublicKey())
+            .verifyWith(jwksClient.publicKey)
             .build()
             .parseSignedClaims(token)
             .payload
