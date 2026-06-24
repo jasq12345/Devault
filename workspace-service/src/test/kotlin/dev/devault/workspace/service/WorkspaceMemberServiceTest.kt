@@ -4,6 +4,7 @@ import dev.devault.authlib.security.principal.AuthenticatedUser
 import dev.devault.workspace.dto.request.SaveWorkspaceMemberDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceMemberRoleDto
 import dev.devault.workspace.exception.CannotModifyOwnerException
+import dev.devault.workspace.exception.UserAlreadyMemberException
 import dev.devault.workspace.model.Workspace
 import dev.devault.workspace.model.WorkspaceMember
 import dev.devault.workspace.repository.WorkspaceMemberRepository
@@ -106,6 +107,7 @@ class WorkspaceMemberServiceTest {
             assertEquals(memberships, result)
         }
     }
+
     @Nested
     inner class AddOwner {
         @Test
@@ -127,11 +129,15 @@ class WorkspaceMemberServiceTest {
     inner class SaveWorkspaceMember {
         private val authenticatedUser = AuthenticatedUser(UUID.randomUUID(), "testuser", listOf())
         private val workspaceId = UUID.randomUUID()
-        private val dto = SaveWorkspaceMemberDto(UUID.randomUUID())
+        private val workspace = mockk<Workspace>()
+        init {
+            every { workspace.id } returns workspaceId
+        }
 
         @Test
         fun `adds member when caller is owner`() {
-            val workspace = mockk<Workspace>()
+
+            val dto = SaveWorkspaceMemberDto(UUID.randomUUID())
             val caller = WorkspaceMember(UUID.randomUUID(), authenticatedUser.id, WorkspaceRole.OWNER, workspace)
             val members = mutableListOf(caller)
 
@@ -143,21 +149,40 @@ class WorkspaceMemberServiceTest {
             assertEquals(dto.userId, result.userId)
             assertEquals(WorkspaceRole.MEMBER, result.role)
         }
+
         @Test
         fun `throws when workspace does not exist`() {
+            val dto = SaveWorkspaceMemberDto(UUID.randomUUID())
+            every { repository.findAllByWorkspaceId(workspaceId) } returns mutableListOf()
 
+            assertThrows<NoSuchElementException> {
+                service.saveWorkspaceMember(authenticatedUser, workspaceId, dto)
+            }
         }
 
         @Test
         fun `throws when caller lacks permission`() {
+            val dto = SaveWorkspaceMemberDto(UUID.randomUUID())
+            val member = WorkspaceMember(UUID.randomUUID(), authenticatedUser.id, WorkspaceRole.MEMBER, workspace)
+            every { repository.findAllByWorkspaceId(workspaceId) } returns mutableListOf(member)
 
+            assertThrows<AccessDeniedException> {
+                service.saveWorkspaceMember(authenticatedUser, workspaceId, dto)
+            }
         }
 
         @Test
         fun `throws when user is already a member`() {
+            val dto = SaveWorkspaceMemberDto(authenticatedUser.id)
+            val member = WorkspaceMember(UUID.randomUUID(), authenticatedUser.id, WorkspaceRole.ADMIN, workspace)
+            every { repository.findAllByWorkspaceId(workspaceId) } returns mutableListOf(member)
 
+            assertThrows<UserAlreadyMemberException> {
+                service.saveWorkspaceMember(authenticatedUser, workspaceId, dto)
+            }
         }
     }
+
     @Nested
     inner class UpdateMemberRole {
         private val authenticatedUser = AuthenticatedUser(UUID.randomUUID(), "testuser", listOf())
@@ -283,6 +308,104 @@ class WorkspaceMemberServiceTest {
 
             assertThrows<AccessDeniedException> {
                 service.updateMemberRole(authenticatedUser, workspaceId,  id, newRole)
+            }
+        }
+    }
+
+    @Nested
+    inner class FindAllMembers {
+        private val authenticatedUser = AuthenticatedUser(UUID.randomUUID(), "testuser", listOf())
+        private val workspaceId = UUID.randomUUID()
+        private val workspace = mockk<Workspace>()
+        init{
+            every { workspace.id } returns workspaceId
+        }
+
+        @Test
+        fun `returns list of members when caller is a member`() {
+            val caller = WorkspaceMember(UUID.randomUUID(), authenticatedUser.id, WorkspaceRole.OWNER, workspace)
+            val members = mutableListOf(caller)
+
+            every { repository.findAllByWorkspaceId(workspaceId) } returns members
+
+            val result = service.findAllMembers(authenticatedUser, workspaceId)
+
+            assertEquals(1, result.size)
+            assertEquals(caller.userId, result.first().userId)
+        }
+
+        @Test
+        fun `throws when caller is not a member`() {
+            val someoneElse = WorkspaceMember(UUID.randomUUID(), UUID.randomUUID(), WorkspaceRole.OWNER, workspace)
+            val members = mutableListOf(someoneElse)
+
+            every { repository.findAllByWorkspaceId(workspaceId) } returns members
+
+            assertThrows<AccessDeniedException> {
+                service.findAllMembers(authenticatedUser, workspaceId)
+            }
+        }
+
+        @Test
+        fun `throws when workspace does not exist`() {
+            every { repository.findAllByWorkspaceId(workspaceId) } returns mutableListOf()
+
+            assertThrows<NoSuchElementException> {
+                service.findAllMembers(authenticatedUser, workspaceId)
+            }
+        }
+    }
+
+    @Nested
+    inner class FindWorkspaceMemberById {
+        private val authenticatedUser = AuthenticatedUser(UUID.randomUUID(), "testuser", listOf())
+        private val workspaceId = UUID.randomUUID()
+        private val id = UUID.randomUUID()
+        private val workspace = mockk<Workspace>()
+        init {
+            every { workspace.id } returns workspaceId
+        }
+
+        @Test
+        fun `returns member when caller is a member of the workspace`() {
+            val member = WorkspaceMember(id, id, WorkspaceRole.MEMBER, workspace)
+
+            every { repository.existsByWorkspaceId(workspaceId) } returns true
+            every { repository.existsByWorkspaceIdAndUserId(workspaceId, authenticatedUser.id) } returns true
+            every { repository.findByIdAndWorkspaceId(id, workspaceId) } returns member
+
+            val result = service.findWorkspaceMemberById(authenticatedUser, workspaceId, id)
+
+            assertEquals(member.userId, result.userId)
+        }
+
+        @Test
+        fun `throws when caller is not a member`() {
+            every { repository.existsByWorkspaceId(workspaceId) } returns true
+            every { repository.existsByWorkspaceIdAndUserId(workspaceId, authenticatedUser.id) } returns false
+
+            assertThrows<AccessDeniedException> {
+                service.findWorkspaceMemberById(authenticatedUser, workspaceId, id)
+            }
+        }
+
+        @Test
+        fun `throws when workspace does not exist`() {
+            every { repository.existsByWorkspaceId(workspaceId) } returns false
+
+            assertThrows<NoSuchElementException> {
+                service.findWorkspaceMemberById(authenticatedUser, workspaceId, id)
+            }
+        }
+
+        @Test
+        fun `throws when target member does not exist`() {
+            every { repository.existsByWorkspaceId(workspaceId) } returns true
+            every { repository.existsByWorkspaceIdAndUserId(workspaceId, authenticatedUser.id) } returns true
+            every { repository.findByIdAndWorkspaceId(id, workspaceId) } returns null
+
+            assertThrows<NoSuchElementException> {
+                service.findWorkspaceMemberById(authenticatedUser, workspaceId, id)
             }
         }
     }
