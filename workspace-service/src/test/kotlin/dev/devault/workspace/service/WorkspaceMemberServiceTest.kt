@@ -427,6 +427,23 @@ class WorkspaceMemberServiceTest {
                 service.updateMemberRole(authenticatedUser, workspaceId,  id, newRole)
             }
         }
+
+        @Test
+        fun `throws when member to update does not exist`() {
+            val workspace = Workspace(workspaceId, "workspace", "workspace", authenticatedUser.id)
+            val caller = WorkspaceMember(UUID.randomUUID(), authenticatedUser.id, WorkspaceRole.ADMIN, workspace)
+            val newRole = UpdateWorkspaceMemberRoleDto(WorkspaceRole.ADMIN)
+
+            every { repository.existsByWorkspaceId(workspaceId) } returns true
+            every { repository.findWorkspaceMemberByWorkspaceIdAndUserId(workspaceId, authenticatedUser.id) } returns caller
+            every { repository.findByIdAndWorkspaceId(id, workspaceId) } returns null
+
+            assertThrows<NoSuchElementException> {
+                service.updateMemberRole(authenticatedUser, workspaceId, id, newRole)
+            }
+
+            verify(exactly = 0) { repository.save(any()) }
+        }
     }
 
     @Nested
