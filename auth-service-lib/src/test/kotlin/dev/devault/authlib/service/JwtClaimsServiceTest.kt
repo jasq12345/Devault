@@ -63,6 +63,13 @@ class JwtClaimsServiceTest {
 
         @Test
         fun `throws when issuer does not match`() {
+            every { jwksClient.publicKey } returns keyPair.public
+
+            val token = buildToken(issuer = "not-devault-auth", expiration = Date(System.currentTimeMillis() - 60_000))
+
+            assertThrows<IllegalStateException> {
+                service.validate(token)
+            }
         }
     }
 
