@@ -52,14 +52,15 @@ class JwtClaimsService(
         extractClaim(token) { UUID.fromString(it["jti"].toString()) }
     }.getOrElse { throw IllegalStateException("Invalid jti claim") }
 
-    fun extractExpiration(token: String): Date =
+    fun extractExpiration(token: String): Date = runCatching {
         extractClaim(token, Claims::getExpiration)
+    }.getOrElse { throw IllegalStateException("Invalid expiration claim") }
 
     fun extractAuthorities(token: String): List<String> =
         extractClaim(token) { claims ->
             val authorities = claims["authorities"]
-            if (authorities is List<*>) {
-                authorities.filterIsInstance<String>()
+            if (authorities is List<*> && authorities.all { it is String }) {
+                authorities.map { it as String }
             } else {
                 throw IllegalStateException("Invalid authorities claim")
             }
