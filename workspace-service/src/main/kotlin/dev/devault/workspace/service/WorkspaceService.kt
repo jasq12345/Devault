@@ -95,6 +95,7 @@ class WorkspaceService(
 
         val currentOwner = members.find { it.userId == authenticatedUser.id }
             ?: throw AccessDeniedException("Access denied")
+
         if (currentOwner.role != WorkspaceRole.OWNER)
             throw AccessDeniedException("Access denied")
 

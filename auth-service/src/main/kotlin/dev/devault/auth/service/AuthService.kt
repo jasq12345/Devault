@@ -5,6 +5,7 @@ import dev.devault.auth.dto.request.RefreshTokenDto
 import dev.devault.auth.dto.request.RegisterDto
 import dev.devault.auth.dto.response.RegisterResponseDto
 import dev.devault.auth.dto.response.TokenPair
+import dev.devault.auth.dto.response.toResponse
 import dev.devault.auth.exception.InvalidTokenException
 import dev.devault.auth.exception.UserAlreadyExistsException
 import dev.devault.auth.model.User
@@ -41,12 +42,7 @@ class AuthService(
         user.enabled = true
         val savedUser = userRepository.save(user)
 
-        return RegisterResponseDto(
-            id = savedUser.id,
-            email = savedUser.email,
-            username = savedUser.username,
-            authorities = savedUser.authorities
-        )
+        return savedUser.toResponse()
     }
 
     private fun validateRegisterDto(dto: RegisterDto) {
