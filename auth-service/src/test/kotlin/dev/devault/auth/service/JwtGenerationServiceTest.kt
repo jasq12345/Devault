@@ -36,8 +36,8 @@ class JwtGenerationServiceTest {
 
             val result = service.generateTokenPair(userPrincipal)
 
-            assert(result.accessToken.isNotBlank())
-            assert(result.refreshToken.isNotBlank())
+            assertTrue(result.accessToken.isNotBlank())
+            assertTrue(result.refreshToken.isNotBlank())
         }
 
         @Test
