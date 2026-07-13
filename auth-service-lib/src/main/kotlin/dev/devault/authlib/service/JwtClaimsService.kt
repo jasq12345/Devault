@@ -54,6 +54,7 @@ class JwtClaimsService(
 
     fun extractExpiration(token: String): Date = runCatching {
         extractClaim(token, Claims::getExpiration)
+            ?: throw IllegalStateException("Missing expiration claim")
     }.getOrElse { throw IllegalStateException("Invalid expiration claim") }
 
     fun extractAuthorities(token: String): List<String> =
