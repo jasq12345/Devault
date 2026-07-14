@@ -254,6 +254,64 @@ class AuthServiceTest {
                 service.refresh(dto)
             }
         }
+
+        @Test
+        fun `throws InvalidTokenException when user is banned`(){
+            val token = dto.refreshToken
+            val jti = UUID.randomUUID()
+            val futureDate = Date(System.currentTimeMillis() + 60_000)
+            val userId = UUID.randomUUID()
+            val user = User(
+                userId,
+                "username",
+                "email@email.com",
+                "hashedPassword",
+                mutableSetOf(RoleType.STANDARD),
+                banned = true,
+                enabled = true
+            )
+
+            every { jwtClaimsService.extractClaim<String>(token, any()) } returns TokenType.REFRESH.name.lowercase()
+            every { jwtClaimsService.extractJti(token) } returns jti
+            every { blacklistService.isBlacklisted(jti) } returns false
+            every { jwtClaimsService.extractExpiration(token) } returns futureDate
+            every { blacklistService.blacklist(jti, any()) } returns true
+            every { jwtClaimsService.extractId(dto.refreshToken) } returns userId
+            every { userRepository.findById(userId) } returns Optional.of(user)
+
+            assertThrows<InvalidTokenException> {
+                service.refresh(dto)
+            }
+        }
+
+        @Test
+        fun `throws InvalidTokenException when user is not enabled`(){
+            val token = dto.refreshToken
+            val jti = UUID.randomUUID()
+            val futureDate = Date(System.currentTimeMillis() + 60_000)
+            val userId = UUID.randomUUID()
+            val user = User(
+                userId,
+                "username",
+                "email@email.com",
+                "hashedPassword",
+                mutableSetOf(RoleType.STANDARD),
+                banned = false,
+                enabled = false
+            )
+
+            every { jwtClaimsService.extractClaim<String>(token, any()) } returns TokenType.REFRESH.name.lowercase()
+            every { jwtClaimsService.extractJti(token) } returns jti
+            every { blacklistService.isBlacklisted(jti) } returns false
+            every { jwtClaimsService.extractExpiration(token) } returns futureDate
+            every { blacklistService.blacklist(jti, any()) } returns true
+            every { jwtClaimsService.extractId(dto.refreshToken) } returns userId
+            every { userRepository.findById(userId) } returns Optional.of(user)
+
+            assertThrows<InvalidTokenException> {
+                service.refresh(dto)
+            }
+        }
     }
 
     @Nested
