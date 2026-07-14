@@ -70,7 +70,10 @@ class AuthService(
 
         val userId = jwtClaimsService.extractId(dto.refreshToken)
         val user = userRepository.findById(userId)
-            .orElseThrow { UsernameNotFoundException("User not found") }
+            .orElseThrow { UsernameNotFoundException("Invalid token") }
+
+        if(user.banned || !user.enabled)
+            throw InvalidTokenException("Invalid token")
 
         val principal = UserPrincipal.build(user)
 
@@ -84,22 +87,22 @@ class AuthService(
 
     private fun validateAndExtractRefreshToken(token: String): RefreshTokenClaims {
         if (!isRefreshToken(token))
-            throw InvalidTokenException("Invalid token type")
+            throw InvalidTokenException("Invalid token")
 
         val jti = jwtClaimsService.extractJti(token)
 
         if (blacklistService.isBlacklisted(jti))
-            throw InvalidTokenException("Refresh token is blacklisted")
+            throw InvalidTokenException("Invalid token")
 
         val ttl = jwtClaimsService.extractExpiration(token).time - System.currentTimeMillis()
-        if (ttl <= 0) throw InvalidTokenException("Refresh token expired")
+        if (ttl <= 0) throw InvalidTokenException("Invalid token")
 
         return RefreshTokenClaims(jti, ttl)
     }
 
     private fun blacklistOrThrow(jti: UUID, ttl: Long) {
         if (!blacklistService.blacklist(jti, ttl))
-            throw InvalidTokenException("Refresh token is blacklisted")
+            throw InvalidTokenException("Invalid token")
     }
 
     private fun isRefreshToken(token: String): Boolean =
