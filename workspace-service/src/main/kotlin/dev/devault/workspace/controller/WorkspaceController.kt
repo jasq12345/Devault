@@ -6,6 +6,7 @@ import dev.devault.workspace.dto.request.SaveWorkspaceDto
 import dev.devault.workspace.dto.request.UpdateWorkspaceDto
 import dev.devault.workspace.dto.response.WorkspaceResponseDto
 import dev.devault.workspace.service.WorkspaceService
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -42,7 +43,7 @@ class WorkspaceController(
     @PostMapping("")
     fun saveWorkspace(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
-        @RequestBody dto: SaveWorkspaceDto
+        @RequestBody @Valid dto: SaveWorkspaceDto
     ): ResponseEntity<ApiResponse<WorkspaceResponseDto>> {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(workspaceService.saveWorkspace(authenticatedUser, dto)))
     }
@@ -50,7 +51,7 @@ class WorkspaceController(
     @PutMapping("/{id}")
     fun updateWorkspace(
         @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
-        @RequestBody dto: UpdateWorkspaceDto,
+        @RequestBody @Valid dto: UpdateWorkspaceDto,
         @PathVariable id: UUID
     ): ResponseEntity<ApiResponse<WorkspaceResponseDto>> {
         return ResponseEntity.ok(ApiResponse.ok(workspaceService.updateWorkspace(authenticatedUser, dto, id)))
