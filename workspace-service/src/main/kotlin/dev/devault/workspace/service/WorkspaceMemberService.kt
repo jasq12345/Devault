@@ -12,6 +12,7 @@ import dev.devault.workspace.model.Workspace
 import dev.devault.workspace.model.WorkspaceMember
 import dev.devault.workspace.repository.WorkspaceMemberRepository
 import dev.devault.workspace.type.WorkspaceRole
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
@@ -61,7 +62,12 @@ class WorkspaceMemberService(
             role = WorkspaceRole.MEMBER,
             workspace = members.first().workspace
         )
-        return repository.save(member).toResponse()
+
+        return try {
+            repository.saveAndFlush(member).toResponse()
+        } catch (_: DataIntegrityViolationException) {
+            throw UserAlreadyMemberException("User is already a member")
+        }
     }
 
     fun deleteWorkspaceMember(authenticatedUser: AuthenticatedUser, workspaceId: UUID, id: UUID) {
