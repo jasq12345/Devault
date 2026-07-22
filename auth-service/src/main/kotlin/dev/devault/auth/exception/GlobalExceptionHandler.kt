@@ -2,6 +2,8 @@ package dev.devault.auth.exception
 
 import dev.devault.commonlib.response.apiError
 import org.springframework.http.HttpStatus
+import org.springframework.security.authentication.DisabledException
+import org.springframework.security.authentication.LockedException
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -19,4 +21,12 @@ class AuthExceptionHandler {
     @ExceptionHandler(io.jsonwebtoken.JwtException::class)
     fun handleJwtException(ex: io.jsonwebtoken.JwtException) =
         apiError( "Invalid or expired token", HttpStatus.UNAUTHORIZED)
+
+    @ExceptionHandler(LockedException::class)
+    fun handleLocked(ex: LockedException) =
+        apiError("Account is locked", HttpStatus.UNAUTHORIZED)
+
+    @ExceptionHandler(DisabledException::class)
+    fun handleDisabled(ex: DisabledException) =
+        apiError("Account is disabled", HttpStatus.UNAUTHORIZED)
 }

@@ -1,7 +1,9 @@
 package dev.devault.workspace.dto.request
 
 import dev.devault.workspace.type.WorkspaceRole
+import jakarta.validation.constraints.NotNull
 
 data class UpdateWorkspaceMemberRoleDto(
-    val role: WorkspaceRole
+    @NotNull(message = "role must not be null")
+    var role: WorkspaceRole
 )

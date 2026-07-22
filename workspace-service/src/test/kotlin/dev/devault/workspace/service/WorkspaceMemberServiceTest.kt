@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.access.AccessDeniedException
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -235,13 +236,12 @@ class WorkspaceMemberServiceTest {
 
         @Test
         fun `adds member when caller is owner`() {
-
             val dto = SaveWorkspaceMemberDto(UUID.randomUUID())
             val caller = WorkspaceMember(UUID.randomUUID(), authenticatedUser.id, WorkspaceRole.OWNER, workspace)
             val members = mutableListOf(caller)
 
             every { repository.findAllByWorkspaceId(workspaceId) } returns members
-            every { repository.save(any()) } returns WorkspaceMember(UUID.randomUUID(), dto.userId, WorkspaceRole.MEMBER, workspace)
+            every { repository.saveAndFlush(any()) } returns WorkspaceMember(UUID.randomUUID(), dto.userId, WorkspaceRole.MEMBER, workspace)
 
             val result = service.saveWorkspaceMember(authenticatedUser, workspaceId, dto)
 
@@ -275,6 +275,19 @@ class WorkspaceMemberServiceTest {
             val dto = SaveWorkspaceMemberDto(authenticatedUser.id)
             val member = WorkspaceMember(UUID.randomUUID(), authenticatedUser.id, WorkspaceRole.ADMIN, workspace)
             every { repository.findAllByWorkspaceId(workspaceId) } returns mutableListOf(member)
+
+            assertThrows<UserAlreadyMemberException> {
+                service.saveWorkspaceMember(authenticatedUser, workspaceId, dto)
+            }
+        }
+
+        @Test
+        fun `maps DataIntegrityViolationException to UserAlreadyMemberException on concurrent insert`() {
+            val dto = SaveWorkspaceMemberDto(UUID.randomUUID())
+            val caller = WorkspaceMember(UUID.randomUUID(), authenticatedUser.id, WorkspaceRole.OWNER, workspace)
+            val members = mutableListOf(caller)
+            every { repository.findAllByWorkspaceId(workspaceId) } returns members
+            every { repository.saveAndFlush(any()) } throws DataIntegrityViolationException("duplicate key")
 
             assertThrows<UserAlreadyMemberException> {
                 service.saveWorkspaceMember(authenticatedUser, workspaceId, dto)

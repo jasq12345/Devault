@@ -42,7 +42,7 @@ class JwtClaimsServiceTest {
     inner class Validate {
         @Test
         fun `passes when token is not expired and issuer matches`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             every { jwtProperties.issuer } returns "devault-auth"
 
             val token = buildToken(issuer = "devault-auth")
@@ -54,7 +54,7 @@ class JwtClaimsServiceTest {
 
         @Test
         fun `throws when token is expired`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
 
             val token = buildToken(issuer = "devault-auth", expiration = Date(System.currentTimeMillis() - 60_000))
 
@@ -65,7 +65,7 @@ class JwtClaimsServiceTest {
 
         @Test
         fun `throws when issuer does not match`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             every { jwtProperties.issuer } returns "devault-auth"
 
             val token = buildToken(issuer = "not-devault-auth")
@@ -82,7 +82,7 @@ class JwtClaimsServiceTest {
         @Test
         fun `returns UUID from subject claim`() {
             val id = UUID.randomUUID()
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             val token = buildToken(subject = id.toString())
 
             val result = service.extractId(token)
@@ -92,7 +92,7 @@ class JwtClaimsServiceTest {
 
         @Test
         fun `throws when subject is not a valid UUID`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             val token = buildToken(subject = "not-UUID")
 
             assertThrows<IllegalStateException> {
@@ -106,7 +106,7 @@ class JwtClaimsServiceTest {
         @Test
         fun `returns username from claims`() {
             val username = "username"
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
 
             val token = buildToken(claims = mapOf("username" to username))
 
@@ -116,7 +116,7 @@ class JwtClaimsServiceTest {
 
         @Test
         fun `throws when username claim is missing`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
 
             val token = buildToken()
 
@@ -131,7 +131,7 @@ class JwtClaimsServiceTest {
         @Test
         fun `returns UUID from jti claim`() {
             val jti = UUID.randomUUID()
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             val token = buildToken(claims = mapOf("jti" to jti.toString()))
 
             val result = service.extractJti(token)
@@ -141,7 +141,7 @@ class JwtClaimsServiceTest {
 
         @Test
         fun `throws when jti claim is invalid`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             val token = buildToken(claims = mapOf("jti" to "not-jti"))
 
             assertThrows<IllegalStateException> {
@@ -154,7 +154,7 @@ class JwtClaimsServiceTest {
     inner class ExtractExpiration {
         @Test
         fun `returns expiration date from claims`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             val expiration = Date(System.currentTimeMillis() + 120_000)
             val token = buildToken(expiration = expiration)
 
@@ -165,7 +165,7 @@ class JwtClaimsServiceTest {
 
         @Test
         fun `throws when token is expired`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             val token = buildToken(expiration = Date(System.currentTimeMillis() - 60_000))
 
             assertThrows<IllegalStateException> {
@@ -179,7 +179,7 @@ class JwtClaimsServiceTest {
         @Test
         fun `returns list of authorities`() {
             val authorities = listOf("USER")
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             val token = buildToken(claims = mapOf("authorities" to listOf("USER")))
 
             val result = service.extractAuthorities(token)
@@ -189,7 +189,7 @@ class JwtClaimsServiceTest {
 
         @Test
         fun `throws when authorities claim is not a list`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             val token = buildToken(claims = mapOf("authorities" to "USER"))
 
             assertThrows<IllegalStateException> {
@@ -199,7 +199,7 @@ class JwtClaimsServiceTest {
 
         @Test
         fun `throws when authorities list contains non-string elements`() {
-            every { jwksClient.publicKey } returns keyPair.public
+            every { jwksClient.getPublicKey() } returns keyPair.public
             val token = buildToken(claims = mapOf("authorities" to listOf("USER", 123, "ADMIN")))
 
             assertThrows<IllegalStateException> {

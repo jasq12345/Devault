@@ -5,10 +5,14 @@ import dev.devault.commonlib.response.apiError
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.authentication.BadCredentialsException
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.security.authentication.BadCredentialsException
+import org.springframework.web.HttpRequestMethodNotSupportedException
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.servlet.resource.NoResourceFoundException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -34,9 +38,29 @@ class GlobalExceptionHandler {
     fun handleInvalidOperation(ex: InvalidOperationException) =
         apiError(ex.message ?: "Invalid operation", HttpStatus.BAD_REQUEST)
 
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun handleValidation(ex: MethodArgumentNotValidException): ResponseEntity<ApiResponse<Nothing>> {
+        val details = ex.bindingResult.fieldErrors.joinToString("; ") {
+            "${it.field}: ${it.defaultMessage}"
+        }
+        return apiError(details.ifBlank { "Validation failed" }, HttpStatus.BAD_REQUEST)
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleUnreadableBody(ex: HttpMessageNotReadableException) =
+        apiError("Malformed request body", HttpStatus.BAD_REQUEST)
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException::class)
+    fun handleMethodNotSupported(ex: HttpRequestMethodNotSupportedException) =
+        apiError("Method not allowed", HttpStatus.METHOD_NOT_ALLOWED)
+
+    @ExceptionHandler(NoResourceFoundException::class)
+    fun handleNoResource(ex: NoResourceFoundException) =
+        apiError("Resource not found", HttpStatus.NOT_FOUND)
+
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleIllegalArgument(ex: IllegalArgumentException) =
-        apiError( "Invalid request", HttpStatus.BAD_REQUEST)
+        apiError("Invalid request", HttpStatus.BAD_REQUEST)
 
     @ExceptionHandler(IllegalStateException::class)
     fun handleIllegalState(ex: IllegalStateException): ResponseEntity<ApiResponse<Nothing>> {

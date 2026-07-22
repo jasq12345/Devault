@@ -11,16 +11,22 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.util.UUID
 
 @Entity
-@Table(name = "workspace_members")
+@Table(
+    name = "workspace_members",
+    uniqueConstraints = [
+        UniqueConstraint(columnNames = ["workspace_id", "user_id"])
+    ]
+)
 class WorkspaceMember(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     var id: UUID? = null,
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "user_id")
     var userId: UUID,
 
     @Enumerated(EnumType.STRING)
