@@ -1,3 +1,5 @@
 package dev.devault.workspace.exception
 
-class CannotModifyOwnerException(message: String) : RuntimeException(message)
+import org.springframework.security.access.AccessDeniedException
+
+class CannotModifyOwnerException(message: String) : AccessDeniedException(message)
