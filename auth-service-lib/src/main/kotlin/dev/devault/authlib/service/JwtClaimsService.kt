@@ -29,7 +29,7 @@ class JwtClaimsService(
     }
     private fun extractAllClaims(token: String): Claims {
         return Jwts.parser()
-            .verifyWith(jwksClient.publicKey)
+            .verifyWith(jwksClient.getPublicKey())
             .build()
             .parseSignedClaims(token)
             .payload
