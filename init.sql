@@ -1,14 +1,20 @@
 CREATE DATABASE auth_db;
 CREATE DATABASE workspace_db;
+CREATE DATABASE ingestion_db;
 
 CREATE USER auth_user WITH PASSWORD 'auth_password';
 CREATE USER workspace_user WITH PASSWORD 'workspace_password';
+CREATE USER ingestion_user WITH PASSWORD 'ingestion_password';
 
 GRANT ALL PRIVILEGES ON DATABASE auth_db TO auth_user;
 GRANT ALL PRIVILEGES ON DATABASE workspace_db TO workspace_user;
+GRANT ALL PRIVILEGES on DATABASE ingestion_db TO ingestion_user;
 
 \c auth_db
 GRANT ALL ON SCHEMA public TO auth_user;
 
 \c workspace_db
 GRANT ALL ON SCHEMA public TO workspace_user;
+
+\c ingestion_db
+GRANT ALL ON SCHEMA public TO ingestion_user;
