@@ -119,7 +119,7 @@ services:
     container_name: ${PROJECT_NAME}-kafka
     image: apache/kafka:4.2.0
     expose:
-      - "29092:29092"
+      - "${KAFKA_HOST_PORT}"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
