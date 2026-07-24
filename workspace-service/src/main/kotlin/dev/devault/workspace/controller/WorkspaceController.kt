@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/v1/workspaces")
+@RequestMapping("/workspaces")
 class WorkspaceController(
     private val workspaceService: WorkspaceService
 ) {

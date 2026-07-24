@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/v1/workspaces/{workspaceId}/members")
+@RequestMapping("/workspaces/{workspaceId}/members")
 class WorkspaceMemberController(
     private val workspaceMemberService: WorkspaceMemberService,
     private val workspaceService: WorkspaceService
