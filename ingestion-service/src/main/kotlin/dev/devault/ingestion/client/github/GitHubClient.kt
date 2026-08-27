@@ -5,6 +5,7 @@ import dev.devault.ingestion.client.github.dto.HistoryConnection
 import dev.devault.ingestion.client.github.dto.IssueLikeConnection
 import dev.devault.ingestion.client.github.dto.IssuesResponse
 import dev.devault.ingestion.client.github.dto.PullRequestsResponse
+import dev.devault.ingestion.client.github.dto.RateLimitInfo
 import dev.devault.ingestion.client.github.dto.RepositoryHistoryResponse
 import dev.devault.ingestion.exception.GitHubApiException
 import dev.devault.ingestion.service.CredentialService
@@ -17,10 +18,17 @@ class GitHubClient(
     @Qualifier("gitHubRestClient") private val restClient: RestClient,
     private val credentialService: CredentialService,
     ) {
+    @Volatile
+    private var lastKnownRateLimit: RateLimitInfo? = null
 
     companion object{
         private const val COMMIT_HISTORY_QUERY: String = """
             query(${'$'}owner: String!, ${'$'}name: String!, ${'$'}cursor: String) {
+              rateLimit {
+                remaining
+                resetAt
+                cost
+              }
               repository(owner: ${'$'}owner, name: ${'$'}name) {
                 defaultBranchRef {
                   target {
@@ -38,6 +46,11 @@ class GitHubClient(
 
         private const val PULL_REQUEST_QUERY: String = """
             query(${'$'}owner: String!, ${'$'}name: String!, ${'$'}cursor: String) {
+              rateLimit {
+                remaining
+                resetAt
+                cost
+              }
               repository(owner: ${'$'}owner, name: ${'$'}name) {
                 pullRequests(first: 50, after: ${'$'}cursor) {
                   pageInfo { hasNextPage endCursor }
@@ -57,6 +70,11 @@ class GitHubClient(
 
         private const val ISSUES_QUERY: String = """
             query(${'$'}owner: String!, ${'$'}name: String!, ${'$'}cursor: String) {
+              rateLimit {
+                remaining
+                resetAt
+                cost
+              }
               repository(owner: ${'$'}owner, name: ${'$'}name) {
                 issues(first: 50, after: ${'$'}cursor) {
                   pageInfo { hasNextPage endCursor }
@@ -73,6 +91,8 @@ class GitHubClient(
               }
             }
         """
+
+
     }
     fun fetchCommitHistory(owner: String, name: String, credentialRef: UUID, cursor: String?): HistoryConnection {
         val token = credentialService.getToken(credentialRef)
@@ -89,7 +109,11 @@ class GitHubClient(
             .body(object : ParameterizedTypeReference<GraphQLResponse<RepositoryHistoryResponse>>() {})
             ?: throw GitHubApiException("Empty response from GitHub API")
 
-        return response.unwrap().repository.defaultBranchRef?.target?.history
+        val unwrappedResponse = response.unwrap()
+
+        lastKnownRateLimit = unwrappedResponse.rateLimit
+
+        return unwrappedResponse.repository.defaultBranchRef?.target?.history
             ?: throw GitHubApiException("No commit history found")
     }
 
@@ -108,7 +132,11 @@ class GitHubClient(
             .body(object : ParameterizedTypeReference<GraphQLResponse<PullRequestsResponse>>() {})
             ?: throw GitHubApiException("Empty response from GitHub API")
 
-        return response.unwrap().repository.pullRequests
+        val unwrappedResponse = response.unwrap()
+
+        lastKnownRateLimit = unwrappedResponse.rateLimit
+
+        return unwrappedResponse.repository.pullRequests
     }
 
     fun fetchIssues(owner: String, name: String, credentialRef: UUID, cursor: String?): IssueLikeConnection {
@@ -126,6 +154,12 @@ class GitHubClient(
             .body(object : ParameterizedTypeReference<GraphQLResponse<IssuesResponse>>() {})
             ?: throw GitHubApiException("Empty response from GitHub API")
 
-        return response.unwrap().repository.issues
+        val unwrappedResponse = response.unwrap()
+
+        lastKnownRateLimit = unwrappedResponse.rateLimit
+
+        return unwrappedResponse.repository.issues
     }
+
+    fun getLastKnownRateLimit(): RateLimitInfo? = lastKnownRateLimit
 }
