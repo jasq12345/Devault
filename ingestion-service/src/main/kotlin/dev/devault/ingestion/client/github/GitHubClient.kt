@@ -96,8 +96,8 @@ class GitHubClient(
 
 
     }
-    fun fetchCommitHistory(owner: String, name: String, credentialRef: UUID, cursor: String?): HistoryConnection {
-        val token = credentialService.getToken(credentialRef)
+    fun fetchCommitHistory(userId: UUID, owner: String, name: String, credentialRef: UUID, cursor: String?): HistoryConnection {
+        val token = credentialService.getTokenForUser(credentialRef, userId)
         val requestBody = mapOf(
             "query" to COMMIT_HISTORY_QUERY,
             "variables" to mapOf("owner" to owner, "name" to name, "cursor" to cursor)
@@ -119,8 +119,8 @@ class GitHubClient(
             ?: throw GitHubApiException("No commit history found")
     }
 
-    fun fetchPullRequests(owner: String, name: String, credentialRef: UUID, cursor: String?): IssueLikeConnection {
-        val token = credentialService.getToken(credentialRef)
+    fun fetchPullRequests(userId: UUID, owner: String, name: String, credentialRef: UUID, cursor: String?): IssueLikeConnection {
+        val token = credentialService.getTokenForUser(credentialRef, userId)
         val requestBody = mapOf(
             "query" to PULL_REQUEST_QUERY,
             "variables" to mapOf("owner" to owner, "name" to name, "cursor" to cursor)
@@ -141,8 +141,8 @@ class GitHubClient(
         return unwrappedResponse.repository.pullRequests
     }
 
-    fun fetchIssues(owner: String, name: String, credentialRef: UUID, cursor: String?): IssueLikeConnection {
-        val token = credentialService.getToken(credentialRef)
+    fun fetchIssues(userId: UUID, owner: String, name: String, credentialRef: UUID, cursor: String?): IssueLikeConnection {
+        val token = credentialService.getTokenForUser(credentialRef, userId)
         val requestBody = mapOf(
             "query" to ISSUES_QUERY,
             "variables" to mapOf("owner" to owner, "name" to name, "cursor" to cursor)

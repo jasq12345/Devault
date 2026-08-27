@@ -30,16 +30,16 @@ class BackfillService(
         get() = externalId.substringAfter("/")
 
     @Async
-    fun runBackfill(sourceId: UUID) {
+    fun runBackfill(userId: UUID, sourceId: UUID) {
         val source = sourceRepository.findById(sourceId)
             .orElseThrow { NoSuchElementException("Ingestion source not found: $sourceId") }
         source.status = StatusType.SYNCING
         sourceRepository.save(source)
 
         try {
-            syncCommits(source)
-            syncPullRequests(source)
-            syncIssues(source)
+            syncCommits(userId, source)
+            syncPullRequests(userId, source)
+            syncIssues(userId, source)
             source.status = StatusType.ACTIVE
         } catch (_: Exception) {
             source.status = StatusType.ERROR
@@ -48,28 +48,28 @@ class BackfillService(
         }
     }
 
-    private fun syncCommits(source: IngestionSource) {
+    private fun syncCommits(userId: UUID, source: IngestionSource) {
         var cursor: String? = null
         do {
-            val page = gitHubClient.fetchCommitHistory(source.githubOwner, source.githubName, source.credentialRef, cursor)
+            val page = gitHubClient.fetchCommitHistory(userId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)
     }
 
-    private fun syncPullRequests(source: IngestionSource) {
+    private fun syncPullRequests(userId: UUID, source: IngestionSource) {
         var cursor: String? = null
         do {
-            val page = gitHubClient.fetchPullRequests(source.githubOwner, source.githubName, source.credentialRef, cursor)
+            val page = gitHubClient.fetchPullRequests(userId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node, DocumentType.PULL_REQUEST) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)
     }
 
-    private fun syncIssues(source: IngestionSource) {
+    private fun syncIssues(userId: UUID, source: IngestionSource) {
         var cursor: String? = null
         do {
-            val page = gitHubClient.fetchIssues(source.githubOwner, source.githubName, source.credentialRef, cursor)
+            val page = gitHubClient.fetchIssues(userId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node, DocumentType.ISSUE) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)
