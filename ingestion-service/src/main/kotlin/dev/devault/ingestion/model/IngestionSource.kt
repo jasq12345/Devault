@@ -9,7 +9,6 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import java.time.Instant
@@ -33,7 +32,8 @@ class IngestionSource(
     @Enumerated(EnumType.STRING)
     var source: SourceType = SourceType.GITHUB,
 
-    var externalId: String? = null,
+    @Column(nullable = false)
+    var externalId: String,
 
     @Column(name = "credential_ref", nullable = false)
     var credentialRef: UUID,

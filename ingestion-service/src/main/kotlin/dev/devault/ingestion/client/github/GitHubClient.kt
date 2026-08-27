@@ -11,9 +11,11 @@ import dev.devault.ingestion.exception.GitHubApiException
 import dev.devault.ingestion.service.CredentialService
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import java.util.UUID
 
+@Component
 class GitHubClient(
     @Qualifier("gitHubRestClient") private val restClient: RestClient,
     private val credentialService: CredentialService,
