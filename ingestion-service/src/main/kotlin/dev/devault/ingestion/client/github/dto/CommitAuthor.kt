@@ -1,6 +1,6 @@
 package dev.devault.ingestion.client.github.dto
 
-data class CommitAutor(
+data class CommitAuthor(
     val name: String,
     val email: String
 )
