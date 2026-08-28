@@ -1,6 +1,7 @@
 package dev.devault.ingestion.dto.request
 
 import jakarta.validation.constraints.NotBlank
+import java.util.UUID
 
 data class SaveIngestionSourceDto(
     @NotBlank
@@ -10,5 +11,5 @@ data class SaveIngestionSourceDto(
     val name: String,
 
     @NotBlank
-    val token: String
+    val credentialRef: UUID
 )
