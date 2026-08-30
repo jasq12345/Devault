@@ -3,20 +3,35 @@ package dev.devault.ingestion.service
 import dev.devault.authlib.security.principal.AuthenticatedUser
 import dev.devault.ingestion.dto.request.SaveIngestionSourceDto
 import dev.devault.ingestion.dto.response.IngestionSourceResponseDto
+import dev.devault.ingestion.dto.response.toResponse
+import dev.devault.ingestion.model.IngestionSource
 import dev.devault.ingestion.repository.IngestionSourceRepository
+import dev.devault.ingestion.type.StatusType
 import org.springframework.stereotype.Service
 import java.util.UUID
 
 @Service
 class IngestionSourceService(
     private val repository: IngestionSourceRepository,
-    private val backfillService: BackfillService,
-    private val credentialService: CredentialService
+    private val credentialService: CredentialService,
+    private val backfillService: BackfillService
 ) {
-    fun connectSource(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: SaveIngestionSourceDto) {
-        // TODO(ING-9): brak weryfikacji roli w workspace — na razie każdy zalogowany user
-        // może podłączyć źródło do dowolnego workspace'u, o ile zna jego workspaceId.
-        // Docelowo: REST do workspace-service, sprawdzić ADMIN/OWNER (analogicznie do requireRole()).
-    }
+    fun connectSource(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: SaveIngestionSourceDto): IngestionSourceResponseDto {
+        // TODO(ING-9): brak weryfikacji roli w workspace — patrz notatka.
 
+        credentialService.getTokenForUser(dto.credentialRef, authenticatedUser.id) // rzuci jeśli nie jego
+
+        val source = IngestionSource(
+            workspaceId = workspaceId,
+            externalId = "${dto.owner}/${dto.name}",
+            credentialRef = dto.credentialRef,
+            connectedByUserId = authenticatedUser.id,
+            status = StatusType.PENDING
+        )
+
+        val savedSource = repository.save(source)
+        backfillService.runBackfill(savedSource.id!!)
+
+        return savedSource.toResponse()
+    }
 }
