@@ -17,7 +17,7 @@ class IngestionSourceService(
     private val backfillService: BackfillService
 ) {
     fun connectSource(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: SaveIngestionSourceDto): IngestionSourceResponseDto {
-        // TODO(ING-9): brak weryfikacji roli w workspace — patrz notatka.
+        // TODO(ING-9): brak weryfikacji roli w workspace
 
         credentialService.getTokenForUser(dto.credentialRef, authenticatedUser.id)
 
