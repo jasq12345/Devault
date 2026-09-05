@@ -13,9 +13,14 @@ import java.util.UUID
 @Entity
 @Table(name = "credentials")
 class Credential(
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
     var id: UUID? = null,
+
+    @Column(nullable = false)
+    var label: String,
+
+    @Column(nullable = false)
+    var connectedByUserId: UUID,
 
     @Convert(converter = TokenAttributeConverter::class)
     @Column(nullable = false)
