@@ -38,7 +38,7 @@ class IngestedDocument(
     var contentHash: String,
 
     @Column(nullable = false)
-    var rawContext: String,
+    var rawContent: String,
 
     @Enumerated(EnumType.STRING)
     var documentType: DocumentType,
