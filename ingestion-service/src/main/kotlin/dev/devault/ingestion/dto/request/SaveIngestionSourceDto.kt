@@ -10,6 +10,5 @@ data class SaveIngestionSourceDto(
     @NotBlank
     val name: String,
 
-    @NotBlank
     val credentialRef: UUID
 )
