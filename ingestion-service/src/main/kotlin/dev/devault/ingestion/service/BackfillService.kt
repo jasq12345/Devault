@@ -94,8 +94,9 @@ class BackfillService(
         )
         try {
             documentRepository.saveAndFlush(doc)
-        } catch (_: DataIntegrityViolationException) { }
-    }
+        } catch (_: DataIntegrityViolationException) {
+            // Ignore duplicates to keep backfill idempotent.
+        }
 
     private fun sha256(input: String): String {
         val digest = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))
