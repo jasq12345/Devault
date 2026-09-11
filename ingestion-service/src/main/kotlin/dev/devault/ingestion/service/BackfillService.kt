@@ -50,8 +50,9 @@ class BackfillService(
 
     private fun syncCommits(source: IngestionSource) {
         var cursor: String? = null
+        var page: HistoryConnection
         do {
-            val page = gitHubClient.fetchCommitHistory(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
+            page = gitHubClient.fetchCommitHistory(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)
