@@ -48,3 +48,6 @@ application-secrets.yml
 
 ### Docker-compose ###
 docker-compose.override.yml
+
+public.pem
+private.pem
