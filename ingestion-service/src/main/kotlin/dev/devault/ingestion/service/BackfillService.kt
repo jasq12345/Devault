@@ -2,6 +2,7 @@ package dev.devault.ingestion.service
 
 import dev.devault.ingestion.client.github.GitHubClient
 import dev.devault.ingestion.client.github.dto.CommitNode
+import dev.devault.ingestion.client.github.dto.HistoryConnection
 import dev.devault.ingestion.client.github.dto.IssueLikeNode
 import dev.devault.ingestion.model.IngestedDocument
 import dev.devault.ingestion.model.IngestionSource
@@ -98,6 +99,7 @@ class BackfillService(
         } catch (_: DataIntegrityViolationException) {
             // Ignore duplicates to keep backfill idempotent.
         }
+    }
 
     private fun sha256(input: String): String {
         val digest = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))
