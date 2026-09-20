@@ -81,14 +81,23 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: postgres  # domyślna, nie używana
-    expose:
-      - "5432"
+      POSTGRES_DB: postgres
+      DB_USER_AUTH: ${DB_USER_AUTH}
+      DB_PASSWORD_AUTH: ${DB_PASSWORD_AUTH}
+      DB_NAME_AUTH: ${DB_NAME_AUTH}
+      DB_USER_WORKSPACE: ${DB_USER_WORKSPACE}
+      DB_PASSWORD_WORKSPACE: ${DB_PASSWORD_WORKSPACE}
+      DB_NAME_WORKSPACE: ${DB_NAME_WORKSPACE}
+      DB_USER_INGESTION: ${DB_USER_INGESTION}
+      DB_PASSWORD_INGESTION: ${DB_PASSWORD_INGESTION}
+      DB_NAME_INGESTION: ${DB_NAME_INGESTION}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    expose:
+      - "5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
