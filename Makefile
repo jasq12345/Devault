@@ -1,6 +1,10 @@
-.PHONY: dev-up dev-down dev-logs dev-restart prod-up prod-down prod-logs prod-restart ps
+.PHONY: dev-up dev-down dev-logs dev-restart prod-up prod-down prod-logs prod-restart ps insomnia
 
 # DEV
+
+# Insomnia import file from running services' OpenAPI specs (see insomnia/README.md)
+insomnia:
+	python3 insomnia/generate.py
 
 dev-up:
 	docker compose up -d
