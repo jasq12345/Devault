@@ -45,6 +45,16 @@ Devault
   `{{ refreshToken }}`. Just call **login** first.
 - Path parameters (`:id`, `:workspaceId`) are filled in the request's **Params** tab.
 
+## New service
+
+Add one line to `DEFAULT_SPECS` in `generate.py`, e.g.:
+
+```python
+"query": "http://localhost:8083/api/v1/v3/api-docs",
+```
+
+Everything else (folders, request names, bodies, token handling) is derived from the spec.
+
 ## After API changes
 
 Regenerate and import again. Request ids are deterministic, so Insomnia updates the existing requests

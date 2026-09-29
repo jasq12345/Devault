@@ -73,7 +73,14 @@ profile.
 | workspace-service | http://localhost:8080/api/v1/v3/api-docs  | http://localhost:8080/api/v1/swagger-ui.html |
 | ingestion-service | http://localhost:8082/api/v1/v3/api-docs  | http://localhost:8082/api/v1/swagger-ui.html |
 
-YAML is available under `/v3/api-docs.yaml`. In Insomnia: *Import → URL* with the JSON link.
+YAML is available under `/v3/api-docs.yaml`.
+
+### Insomnia
+
+`make insomnia` generates one ready-to-import **Devault** collection from the running services
+(folders per service and controller, per-service `base_url`, pre-filled bodies, tokens saved after login).
+See `insomnia/README.md`. The generated file is git-ignored.
+A new service only needs one entry (name → spec URL) in `DEFAULT_SPECS` in `insomnia/generate.py`.
 
 ### Adding docs to a new service
 
@@ -96,6 +103,7 @@ YAML is available under `/v3/api-docs.yaml`. In Insomnia: *Import → URL* with 
    springdoc.swagger-ui.enabled=false
    ```
 4. Add `SPRING_PROFILES_ACTIVE: prod` to the service in `docker-compose.yml`.
+5. Add the service's spec URL to `DEFAULT_SPECS` in `insomnia/generate.py`.
 
 ### Customizing
 
