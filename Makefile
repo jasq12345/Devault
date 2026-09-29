@@ -1,6 +1,10 @@
-.PHONY: dev-up dev-down dev-logs dev-restart prod-up prod-down prod-logs prod-restart ps insomnia
+.PHONY: dev-up dev-down dev-logs dev-restart prod-up prod-down prod-logs prod-restart ps insomnia jwt-keys
 
 # DEV
+
+# Ed25519 JWT keys for auth-service: fills empty JWT_PRIVATE_KEY / JWT_PUBLIC_KEY in .env and .env.local
+jwt-keys:
+	java scripts/GenerateJwtKeys.java .env .env.local
 
 # Insomnia import file from running services' OpenAPI specs (see insomnia/README.md)
 insomnia:
