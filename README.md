@@ -23,7 +23,6 @@ Architecture, dependency rules and conventions: [SYSTEM.md](SYSTEM.md).
 
 - JDK 21
 - Docker with Docker Compose
-- OpenSSL 3 for JWT keys (on macOS: `brew install openssl` – the system LibreSSL may not support Ed25519)
 - Python 3 – only for generating the Insomnia collection
 
 ## Local setup
@@ -42,18 +41,31 @@ In `.env.local` point the services at your machine: `DB_HOST=localhost`, `REDIS_
 ### 2. JWT keys
 
 auth-service signs tokens with an **Ed25519** key pair, passed as Base64-encoded DER
-(private key: PKCS#8, public key: X.509):
+(private key: PKCS#8, public key: X.509). Generate it with the JDK – no OpenSSL needed:
+
+```bash
+make jwt-keys
+```
+
+This fills empty `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` in `.env` and `.env.local` with the same key pair.
+Keys that are already set are never overwritten – clear both values to regenerate.
+`java scripts/GenerateJwtKeys.java` without arguments only prints the variables.
+
+Also set `JWT_ACCESS_EXPIRATION` and `JWT_REFRESH_EXPIRATION` (milliseconds).
+
+<details>
+<summary>Alternative: OpenSSL 3</summary>
+
+The macOS system `openssl` (LibreSSL) does not support Ed25519 – use OpenSSL 3 (`brew install openssl`).
 
 ```bash
 openssl genpkey -algorithm ed25519 -out private.pem
-openssl pkey -in private.pem -pubout -out public.pem
-
 openssl pkey -in private.pem -outform DER | base64          # -> JWT_PRIVATE_KEY
 openssl pkey -in private.pem -pubout -outform DER | base64  # -> JWT_PUBLIC_KEY
 ```
 
-On Linux use `base64 -w0` to get a single line. Put both values into `.env` and `.env.local`, together with
-`JWT_ACCESS_EXPIRATION` and `JWT_REFRESH_EXPIRATION` (milliseconds). `private.pem` / `public.pem` are git-ignored.
+On Linux use `base64 -w0` to get a single line. `private.pem` / `public.pem` are git-ignored.
+</details>
 
 ### 3. Infrastructure
 
