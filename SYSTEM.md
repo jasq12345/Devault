@@ -78,7 +78,8 @@ YAML is available under `/v3/api-docs.yaml`.
 ### Insomnia
 
 `make insomnia` generates one ready-to-import **Devault** collection from the running services
-(folders per service and controller, per-service `base_url`, pre-filled bodies, tokens saved after login).
+(folders per service and controller, per-service `base_url`, pre-filled bodies, tokens saved after login,
+path parameters filled from ids saved from responses).
 See `insomnia/README.md`. The generated file is git-ignored.
 A new service only needs one entry (name → spec URL) in `DEFAULT_SPECS` in `insomnia/generate.py`.
 
