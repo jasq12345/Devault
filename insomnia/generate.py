@@ -7,12 +7,15 @@ Layout: Devault / <service> / <controller tag> / <request>
 - each service folder has its own `base_url` (folder environment), so all services live in one collection
 - request bodies are pre-filled from `example` values in the specs
 - login/refresh store the returned tokens in `bearerToken` / `refreshToken` (after-response script)
+- path parameters are filled from id variables (`workspaceId`, `memberId`, ...) stored from the responses
+- the credential `token` is sent from `githubToken`, pre-filled from INSOMNIA_GITHUB_TOKEN in .env.local / .env
 
 Usage: see insomnia/README.md
 """
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 import urllib.error
@@ -26,6 +29,10 @@ DEFAULT_SPECS = {
     "ingestion": "http://localhost:8082/api/v1/v3/api-docs",
 }
 DEFAULT_OUTPUT = Path(__file__).parent / "devault.insomnia.json"
+ENV_FILES = [Path(__file__).parent.parent / name for name in (".env.local", ".env")]
+GITHUB_TOKEN_SETTING = "INSOMNIA_GITHUB_TOKEN"
+# Body fields sent from base environment variables instead of the spec's example
+BODY_VARIABLES = {"refreshToken": "refreshToken", "token": "githubToken"}
 
 WORKSPACE_ID = "wrk_devault"
 BASE_ENV_ID = "env_devault_base"
@@ -41,10 +48,35 @@ if (body && body.data && body.data.accessToken) {
 }
 """
 
+STORE_ID_SCRIPT = """\
+// Generated: stores the returned id for the path parameters of the other requests
+// (a list keeps the stored id while it is still on the list, otherwise takes the first one)
+const body = insomnia.response.json();
+const data = body && body.data;
+const ids = (Array.isArray(data) ? data : [data]).filter((item) => item && item.id).map((item) => item.id);
+if (ids.length && !ids.includes(insomnia.baseEnvironment.get("%(variable)s"))) {
+  insomnia.baseEnvironment.set("%(variable)s", ids[0]);
+}
+"""
+
 
 def stable_id(prefix: str, *parts: str) -> str:
     # Deterministic ids, so re-importing a regenerated file updates the same requests
     return f"{prefix}_{hashlib.sha1('/'.join(parts).encode()).hexdigest()[:24]}"
+
+
+def local_setting(name: str) -> str:
+    """Value from the process environment, otherwise from the git-ignored .env.local / .env."""
+    if os.environ.get(name):
+        return os.environ[name]
+    for env_file in ENV_FILES:
+        if not env_file.is_file():
+            continue
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            key, _, value = line.partition("=")
+            if key.strip() == name and value.strip():
+                return value.strip().strip("'\"")
+    return ""
 
 
 def fetch_spec(url: str) -> dict:
@@ -121,22 +153,56 @@ def json_body(doc: dict, operation: dict):
     if media_type is None:
         return None
     body = example_value(resolve(doc, content[media_type].get("schema", {})))
-    if isinstance(body, dict) and "refreshToken" in body:
-        body["refreshToken"] = "{{ _.refreshToken }}"
+    if isinstance(body, dict):
+        for field, variable in BODY_VARIABLES.items():
+            if field in body:
+                body[field] = "{{ _.%s }}" % variable
     return body
 
 
-def returns_tokens(doc: dict, operation: dict) -> bool:
-    """True when the success response looks like ApiResponse<TokenPair>."""
+def success_data_schemas(doc: dict, operation: dict) -> list:
+    """Schemas of `data` in the success responses (ApiResponse<T>)."""
+    schemas = []
     for code, response in (operation.get("responses") or {}).items():
         if not code.startswith("2"):
             continue
         for media in (response.get("content") or {}).values():
             data = resolve(doc, media.get("schema", {})).get("properties", {}).get("data", {})
-            candidates = non_null(data.get("oneOf") or data.get("anyOf") or [data])
-            if any("accessToken" in (c.get("properties") or {}) for c in candidates):
-                return True
-    return False
+            schemas.extend(non_null(data.get("oneOf") or data.get("anyOf") or [data]))
+    return schemas
+
+
+def returns_tokens(doc: dict, operation: dict) -> bool:
+    """True when the success response looks like ApiResponse<TokenPair>."""
+    return any("accessToken" in (s.get("properties") or {}) for s in success_data_schemas(doc, operation))
+
+
+def id_variable(collection: str) -> str:
+    """Variable holding an id from a path collection: "workspaces" -> "workspaceId"."""
+    words = collection.removesuffix("s").split("-")
+    return words[0] + "".join(word.capitalize() for word in words[1:]) + "Id"
+
+
+def path_variables(path: str) -> dict:
+    """Maps each path parameter to the variable that fills it; a plain {id} is named after its collection."""
+    segments = path.strip("/").split("/")
+    variables = {}
+    for collection, segment in zip([""] + segments, segments):
+        if segment.startswith("{"):
+            name = segment[1:-1]
+            variables[name] = id_variable(collection) if name == "id" and collection else name
+    return variables
+
+
+def stored_variable(doc: dict, path: str, operation: dict):
+    """Variable for the id returned by the operation (one resource or a list), named after the path's collection."""
+    segments = path.strip("/").split("/")
+    if segments[-1].startswith("{"):
+        segments.pop()
+    items = [schema.get("items", schema) for schema in success_data_schemas(doc, operation)]
+    if segments and any("id" in (item.get("properties") or {}) for item in items):
+        return id_variable(segments[-1])
+    return None
 
 
 def requires_bearer(doc: dict, operation: dict) -> bool:
@@ -144,8 +210,11 @@ def requires_bearer(doc: dict, operation: dict) -> bool:
     return any(BEARER_SCHEME in requirement for requirement in security)
 
 
-def build_request(doc: dict, service: str, folder_id: str, path: str, method: str, operation: dict, sort_key: int) -> dict:
+def build_request(
+    doc: dict, service: str, folder_id: str, path: str, method: str, operation: dict, sort_key: int, variables: list
+) -> dict:
     parameters = [resolve(doc, p) for p in operation.get("parameters", [])]
+    path_params = path_variables(path)
     body = json_body(doc, operation)
     request = {
         "_id": stable_id("req", service, method, path),
@@ -156,7 +225,8 @@ def build_request(doc: dict, service: str, folder_id: str, path: str, method: st
         "method": method.upper(),
         "url": "{{ _.base_url }}" + re.sub(r"{([^}]+)}", r":\1", path),
         "pathParameters": [
-            {"name": p["name"], "value": str(p.get("example", ""))} for p in parameters if p.get("in") == "path"
+            {"name": p["name"], "value": "{{ _.%s }}" % path_params.get(p["name"], p["name"])}
+            for p in parameters if p.get("in") == "path"
         ],
         "parameters": [
             {"name": p["name"], "value": str(p.get("example", "")), "disabled": not p.get("required", False)}
@@ -171,10 +241,12 @@ def build_request(doc: dict, service: str, folder_id: str, path: str, method: st
     }
     if returns_tokens(doc, operation):
         request["afterResponseScript"] = STORE_TOKENS_SCRIPT
+    elif (variable := stored_variable(doc, path, operation)) in variables:
+        request["afterResponseScript"] = STORE_ID_SCRIPT % {"variable": variable}
     return request
 
 
-def build_service(doc: dict, service: str, sort_key: int) -> list:
+def build_service(doc: dict, service: str, sort_key: int, variables: list) -> list:
     service_folder_id = stable_id("fld", service)
     resources = [{
         "_id": service_folder_id,
@@ -213,7 +285,7 @@ def build_service(doc: dict, service: str, sort_key: int) -> list:
                 "environmentPropertyOrder": None,
                 "metaSortKey": tag_names.index(tag),
             })
-        resources.append(build_request(doc, service, tag_folders[tag], path, method, operation, index))
+        resources.append(build_request(doc, service, tag_folders[tag], path, method, operation, index, variables))
     return resources
 
 
@@ -231,25 +303,31 @@ def main() -> int:
         name, _, url = override.partition("=")
         specs[name] = url
 
+    docs = {}
+    for service, url in specs.items():
+        try:
+            docs[service] = fetch_spec(url)
+        except (urllib.error.URLError, OSError) as error:
+            print(f"skipped {service}: cannot fetch {url} ({error})", file=sys.stderr)
+
+    if not docs:
+        print("no service available - start the services first", file=sys.stderr)
+        return 1
+
+    # Path parameters render from the base environment, so every variable has to exist there (shared by all services)
+    variables = sorted({
+        variable for doc in docs.values() for path in doc.get("paths", {}) for variable in path_variables(path).values()
+    })
+    github_token = local_setting(GITHUB_TOKEN_SETTING)
+    environment = {"bearerToken": "", "refreshToken": "", "githubToken": github_token, **dict.fromkeys(variables, "")}
     resources = [
         {"_id": WORKSPACE_ID, "_type": "workspace", "parentId": None, "name": "Devault", "description": "",
          "scope": "collection"},
         {"_id": BASE_ENV_ID, "_type": "environment", "parentId": WORKSPACE_ID, "name": "Base Environment",
-         "data": {"bearerToken": "", "refreshToken": ""}, "dataPropertyOrder": None, "isPrivate": False},
+         "data": environment, "dataPropertyOrder": None, "isPrivate": False},
     ]
-    included = []
-    for sort_key, (service, url) in enumerate(specs.items()):
-        try:
-            doc = fetch_spec(url)
-        except (urllib.error.URLError, OSError) as error:
-            print(f"skipped {service}: cannot fetch {url} ({error})", file=sys.stderr)
-            continue
-        resources.extend(build_service(doc, service, sort_key))
-        included.append(service)
-
-    if not included:
-        print("no service available - start the services first", file=sys.stderr)
-        return 1
+    for sort_key, (service, doc) in enumerate(docs.items()):
+        resources.extend(build_service(doc, service, sort_key, variables))
 
     export = {
         "_type": "export",
@@ -260,7 +338,11 @@ def main() -> int:
     }
     args.output.write_text(json.dumps(export, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     requests = sum(1 for r in resources if r["_type"] == "request")
-    print(f"wrote {args.output} ({', '.join(included)}; {requests} requests)")
+    print(f"wrote {args.output} ({', '.join(docs)}; {requests} requests)")
+    if github_token:
+        print(f"githubToken set from {GITHUB_TOKEN_SETTING} - the file contains your token, do not commit or share it")
+    else:
+        print(f"githubToken is empty - set {GITHUB_TOKEN_SETTING} in .env.local to pre-fill the GitHub token")
     return 0
 
 
