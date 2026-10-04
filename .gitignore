@@ -54,3 +54,5 @@ private.pem
 
 ### Insomnia (generated, see insomnia/README.md) ###
 insomnia/*.insomnia.json
+
+AGENTS.md
