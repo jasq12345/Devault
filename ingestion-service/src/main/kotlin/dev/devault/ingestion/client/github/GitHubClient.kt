@@ -115,7 +115,7 @@ class GitHubClient(
 
         lastKnownRateLimit = unwrappedResponse.rateLimit
 
-        return unwrappedResponse.repository.defaultBranchRef?.target?.history
+        return unwrappedResponse.repository?.defaultBranchRef?.target?.history
             ?: throw GitHubApiException("No commit history found")
     }
 
@@ -138,7 +138,7 @@ class GitHubClient(
 
         lastKnownRateLimit = unwrappedResponse.rateLimit
 
-        return unwrappedResponse.repository.pullRequests
+        return unwrappedResponse.repository?.pullRequests ?: throw GitHubApiException("Empty response from GitHub API")
     }
 
     fun fetchIssues(userId: UUID, owner: String, name: String, credentialRef: UUID, cursor: String?): IssueLikeConnection {
@@ -160,7 +160,7 @@ class GitHubClient(
 
         lastKnownRateLimit = unwrappedResponse.rateLimit
 
-        return unwrappedResponse.repository.issues
+        return unwrappedResponse.repository?.issues ?: throw GitHubApiException("Empty response from GitHub API")
     }
 
     fun getLastKnownRateLimit(): RateLimitInfo? = lastKnownRateLimit
