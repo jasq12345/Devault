@@ -10,7 +10,7 @@ import dev.devault.ingestion.repository.IngestedDocumentRepository
 import dev.devault.ingestion.repository.IngestionSourceRepository
 import dev.devault.ingestion.type.DocumentType
 import dev.devault.ingestion.type.StatusType
-import org.springframework.dao.DataIntegrityViolationException
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import java.security.MessageDigest
@@ -23,6 +23,7 @@ class BackfillService(
     private val sourceRepository: IngestionSourceRepository,
     private val gitHubClient: GitHubClient
 ) {
+    private val logger = LoggerFactory.getLogger(this::class.java)
 
     private val IngestionSource.githubOwner: String
         get() = externalId.substringBefore("/")
@@ -42,7 +43,8 @@ class BackfillService(
             syncPullRequests(source)
             syncIssues(source)
             source.status = StatusType.ACTIVE
-        } catch (_: Exception) {
+        } catch (ex: Exception) {
+            logger.error("Backfill failed for source {}", sourceId, ex)
             source.status = StatusType.ERROR
         } finally {
             sourceRepository.save(source)
@@ -86,6 +88,9 @@ class BackfillService(
     }
 
     private fun save(source: IngestionSource, externalRef: String, content: String, type: DocumentType) {
+        // Skip documents that are already stored to keep backfill idempotent.
+        if (documentRepository.existsBySourceAndExternalRef(source, externalRef)) return
+
         val doc = IngestedDocument(
             source = source,
             externalRef = externalRef,
@@ -94,11 +99,7 @@ class BackfillService(
             documentType = type,
             ingestedAt = Instant.now()
         )
-        try {
-            documentRepository.saveAndFlush(doc)
-        } catch (_: DataIntegrityViolationException) {
-            // Ignore duplicates to keep backfill idempotent.
-        }
+        documentRepository.saveAndFlush(doc)
     }
 
     private fun sha256(input: String): String {
