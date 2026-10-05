@@ -127,6 +127,13 @@ Service containers run with `SPRING_PROFILES_ACTIVE=prod` (API docs disabled). O
 `prod-down`, `prod-logs`, `prod-restart`, `prod-pull`; for local infrastructure `dev-up`, `dev-down`,
 `dev-down-volumes`, `dev-logs`, `dev-restart`.
 
+## Deployment modes
+
+Today Devault is fully self-hosted: one team runs every service, including its own auth-service. A hybrid mode
+is planned as a later stage: the project runs a central auth-service and the frontend, and each team runs the
+data services on its own server, so tokens, secrets and ingested data stay there. It is not implemented yet.
+Design note: [DEPLOYMENT_MODES.md](DEPLOYMENT_MODES.md).
+
 ## License
 
 [Apache License 2.0](LICENSE)
