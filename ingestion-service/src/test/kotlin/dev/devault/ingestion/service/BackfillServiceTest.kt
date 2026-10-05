@@ -57,6 +57,7 @@ class BackfillServiceTest {
         every { sourceRepository.save(any()) } answers {
             firstArg<IngestionSource>().also { savedStatuses += it.status }
         }
+        every { documentRepository.existsBySourceAndExternalRef(any(), any()) } returns false
         every { documentRepository.saveAndFlush(capture(savedDocuments)) } answers { firstArg() }
         every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns commitPage()
         every { gitHubClient.fetchPullRequests(any(), any(), any(), any(), any()) } returns issueLikePage()
@@ -225,17 +226,41 @@ class BackfillServiceTest {
         }
 
         @Test
-        fun `skips a duplicate document and keeps going`() {
+        fun `skips a document that is already stored and keeps going`() {
             every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
                 commitPage(commit("first"), commit("duplicate"), commit("last"))
-            every { documentRepository.saveAndFlush(match { it.externalRef == "duplicate" }) } throws
-                DataIntegrityViolationException("duplicate key")
+            every { documentRepository.existsBySourceAndExternalRef(source, "duplicate") } returns true
 
             service.runBackfill(sourceId)
 
             assertEquals(listOf("first", "last"), savedDocuments.map { it.externalRef })
             assertEquals(listOf(StatusType.SYNCING, StatusType.ACTIVE), savedStatuses)
             verify(exactly = 1) { gitHubClient.fetchPullRequests(any(), any(), any(), any(), any()) }
+        }
+
+        @Test
+        fun `looks up existing documents by source and externalRef`() {
+            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns commitPage(commit("abc123"))
+            every { gitHubClient.fetchIssues(any(), any(), any(), any(), any()) } returns issueLikePage(issueLike(7))
+
+            service.runBackfill(sourceId)
+
+            verify(exactly = 1) { documentRepository.existsBySourceAndExternalRef(source, "abc123") }
+            verify(exactly = 1) { documentRepository.existsBySourceAndExternalRef(source, "7") }
+        }
+
+        @Test
+        fun `a document that cannot be stored fails the backfill instead of being dropped`() {
+            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
+                commitPage(commit("first"), commit("broken"), commit("never-reached"))
+            every { documentRepository.saveAndFlush(match { it.externalRef == "broken" }) } throws
+                DataIntegrityViolationException("value too long for type character varying(255)")
+
+            service.runBackfill(sourceId)
+
+            assertEquals(listOf("first"), savedDocuments.map { it.externalRef })
+            assertEquals(listOf(StatusType.SYNCING, StatusType.ERROR), savedStatuses)
+            verify(exactly = 0) { gitHubClient.fetchPullRequests(any(), any(), any(), any(), any()) }
         }
     }
 

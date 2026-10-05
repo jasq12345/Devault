@@ -9,6 +9,7 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -29,5 +30,13 @@ class IngestionSourceController(
     ): ResponseEntity<ApiResponse<IngestionSourceResponseDto>> {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.ok(service.connectSource(authenticatedUser, workspaceId, dto)))
+    }
+
+    @GetMapping
+    fun findAllIngestedSources(
+        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
+        @PathVariable workspaceId: UUID
+    ): ResponseEntity<ApiResponse<List<IngestionSourceResponseDto>>> {
+        return ResponseEntity.ok(ApiResponse.ok(service.findAllIngestedSources(authenticatedUser, workspaceId)))
     }
 }
