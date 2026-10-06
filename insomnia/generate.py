@@ -7,7 +7,8 @@ Layout: Devault / <service> / <controller tag> / <request>
 - each service folder has its own `base_url` (folder environment), so all services live in one collection
 - request bodies are pre-filled from `example` values in the specs
 - login/refresh store the returned tokens in `bearerToken` / `refreshToken` (after-response script)
-- path parameters are filled from id variables (`workspaceId`, `memberId`, ...) stored from the responses
+- path parameters are filled from id variables (`workspaceId`, `memberId`, `sourceId`, ...) stored from the responses
+- body fields that point at another resource (`credentialRef`) are filled from its stored id (`credentialId`)
 - the credential `token` is sent from `githubToken`, pre-filled from INSOMNIA_GITHUB_TOKEN in .env.local / .env
 
 Usage: see insomnia/README.md
@@ -32,7 +33,7 @@ DEFAULT_OUTPUT = Path(__file__).parent / "devault.insomnia.json"
 ENV_FILES = [Path(__file__).parent.parent / name for name in (".env.local", ".env")]
 GITHUB_TOKEN_SETTING = "INSOMNIA_GITHUB_TOKEN"
 # Body fields sent from base environment variables instead of the spec's example
-BODY_VARIABLES = {"refreshToken": "refreshToken", "token": "githubToken"}
+BODY_VARIABLES = {"refreshToken": "refreshToken", "token": "githubToken", "credentialRef": "credentialId"}
 
 WORKSPACE_ID = "wrk_devault"
 BASE_ENV_ID = "env_devault_base"
@@ -194,14 +195,29 @@ def path_variables(path: str) -> dict:
     return variables
 
 
-def stored_variable(doc: dict, path: str, operation: dict):
-    """Variable for the id returned by the operation (one resource or a list), named after the path's collection."""
+def collection_variables(paths) -> dict:
+    """Maps a path collection to the variable of the parameter after it: "ingestion-sources" -> "sourceId"."""
+    variables = {}
+    for path in paths:
+        segments = path.strip("/").split("/")
+        names = path_variables(path)
+        for collection, segment in zip(segments, segments[1:]):
+            if segment.startswith("{") and not collection.startswith("{"):
+                variables[collection] = names[segment[1:-1]]
+    return variables
+
+
+def stored_variable(doc: dict, path: str, operation: dict, collections: dict):
+    """Variable for the id returned by the operation (one resource or a list).
+
+    Named like the path parameter that reads it, or after the path's collection when no path takes that id.
+    """
     segments = path.strip("/").split("/")
     if segments[-1].startswith("{"):
         segments.pop()
     items = [schema.get("items", schema) for schema in success_data_schemas(doc, operation)]
     if segments and any("id" in (item.get("properties") or {}) for item in items):
-        return id_variable(segments[-1])
+        return collections.get(segments[-1], id_variable(segments[-1]))
     return None
 
 
@@ -211,7 +227,8 @@ def requires_bearer(doc: dict, operation: dict) -> bool:
 
 
 def build_request(
-    doc: dict, service: str, folder_id: str, path: str, method: str, operation: dict, sort_key: int, variables: list
+    doc: dict, service: str, folder_id: str, path: str, method: str, operation: dict, sort_key: int,
+    variables: list, collections: dict
 ) -> dict:
     parameters = [resolve(doc, p) for p in operation.get("parameters", [])]
     path_params = path_variables(path)
@@ -241,12 +258,12 @@ def build_request(
     }
     if returns_tokens(doc, operation):
         request["afterResponseScript"] = STORE_TOKENS_SCRIPT
-    elif (variable := stored_variable(doc, path, operation)) in variables:
+    elif (variable := stored_variable(doc, path, operation, collections)) in variables:
         request["afterResponseScript"] = STORE_ID_SCRIPT % {"variable": variable}
     return request
 
 
-def build_service(doc: dict, service: str, sort_key: int, variables: list) -> list:
+def build_service(doc: dict, service: str, sort_key: int, variables: list, collections: dict) -> list:
     service_folder_id = stable_id("fld", service)
     resources = [{
         "_id": service_folder_id,
@@ -285,7 +302,9 @@ def build_service(doc: dict, service: str, sort_key: int, variables: list) -> li
                 "environmentPropertyOrder": None,
                 "metaSortKey": tag_names.index(tag),
             })
-        resources.append(build_request(doc, service, tag_folders[tag], path, method, operation, index, variables))
+        resources.append(
+            build_request(doc, service, tag_folders[tag], path, method, operation, index, variables, collections)
+        )
     return resources
 
 
@@ -315,9 +334,20 @@ def main() -> int:
         return 1
 
     # Path parameters render from the base environment, so every variable has to exist there (shared by all services)
-    variables = sorted({
-        variable for doc in docs.values() for path in doc.get("paths", {}) for variable in path_variables(path).values()
-    })
+    paths = [path for doc in docs.values() for path in doc.get("paths", {})]
+    collections = collection_variables(paths)
+    returned_ids = {
+        stored_variable(doc, path, operation, collections)
+        for doc in docs.values()
+        for path, item in doc.get("paths", {}).items()
+        for method, operation in item.items()
+        if method in METHOD_ORDER
+    }
+    # ... and so do the ids that body fields read, as long as some response returns them
+    variables = sorted(
+        {variable for path in paths for variable in path_variables(path).values()}
+        | (set(BODY_VARIABLES.values()) & returned_ids)
+    )
     github_token = local_setting(GITHUB_TOKEN_SETTING)
     environment = {"bearerToken": "", "refreshToken": "", "githubToken": github_token, **dict.fromkeys(variables, "")}
     resources = [
@@ -327,7 +357,7 @@ def main() -> int:
          "data": environment, "dataPropertyOrder": None, "isPrivate": False},
     ]
     for sort_key, (service, doc) in enumerate(docs.items()):
-        resources.extend(build_service(doc, service, sort_key, variables))
+        resources.extend(build_service(doc, service, sort_key, variables, collections))
 
     export = {
         "_type": "export",

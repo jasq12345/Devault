@@ -43,11 +43,14 @@ Devault
 - **login** and **refresh** save the returned tokens to `bearerToken` and `refreshToken`
   (after-response script); other requests use `Bearer {{ bearerToken }}`, refresh/logout send
   `{{ refreshToken }}`. Just call **login** first.
-- Path parameters (`:id`, `:workspaceId`) are filled from id variables in the base environment
-  (`workspaceId`, `memberId`, ...). Requests that return a resource or a list save its id there
+- Path parameters (`:id`, `:workspaceId`, `:sourceId`) are filled from id variables in the base environment
+  (`workspaceId`, `memberId`, `sourceId`, ...). Requests that return a resource or a list save its id there
   (after-response script): a created resource always, a list only when the saved id is not on it
   (then the first item). Just call **save workspace** or **find all workspaces** first.
   To use another id, change the variable in the base environment or the value in the request's **Params** tab.
+- A body field that points at another resource is filled the same way: **connect source** sends
+  `{{ credentialId }}` as `credentialRef`, saved by **save credential** or **find all credentials**.
+  Call one of them first. New fields of this kind go into `BODY_VARIABLES` in `generate.py`.
 - **save credential** sends `{{ githubToken }}` as the token. To have it pre-filled on every generation, set
   your GitHub PAT in `.env.local` (or `.env`; an environment variable of the same name wins):
 
