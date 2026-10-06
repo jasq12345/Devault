@@ -11,11 +11,23 @@ import dev.devault.ingestion.exception.GitHubApiException
 import dev.devault.ingestion.service.CredentialService
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.resilience.annotation.Retryable
 import org.springframework.stereotype.Component
+import org.springframework.web.client.HttpServerErrorException
+import org.springframework.web.client.ResourceAccessException
 import org.springframework.web.client.RestClient
 import java.util.UUID
 
+// Retries only what can fix itself: GitHub 5xx and connection errors. 4xx and GraphQL errors fail at once.
+// Waits 1s, 2s, 4s, 8s, 16s between attempts; the first delay (ms) comes from ingestion.github.retry.delay.
 @Component
+@Retryable(
+    includes = [HttpServerErrorException::class, ResourceAccessException::class],
+    maxRetries = 5,
+    delayString = "\${ingestion.github.retry.delay:1000}",
+    multiplier = 2.0,
+    maxDelay = 30_000
+)
 class GitHubClient(
     @Qualifier("gitHubRestClient") private val restClient: RestClient,
     private val credentialService: CredentialService,
