@@ -28,6 +28,7 @@ import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.HttpServerErrorException
 import org.springframework.web.client.RestClient
 import java.io.IOException
+import java.time.Clock
 import java.util.UUID
 import kotlin.test.assertEquals
 
@@ -125,8 +126,8 @@ class GitHubClientRetryTest(
 
         // Depends on mockServer so that the builder is already bound to it when the client is built.
         @Bean
-        fun gitHubClient(mockServer: MockRestServiceServer, credentialService: CredentialService) =
-            GitHubClient(restClientBuilder.build(), credentialService)
+        fun gitHubClient(mockServer: MockRestServiceServer, credentialService: CredentialService, clock: Clock) =
+            GitHubClient(restClientBuilder.build(), credentialService, clock)
     }
 
     private companion object {
