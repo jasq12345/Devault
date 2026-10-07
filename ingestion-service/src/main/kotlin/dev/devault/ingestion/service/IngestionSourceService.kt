@@ -67,6 +67,10 @@ class IngestionSourceService(
         repository.delete(source)
     }
 
+    fun isCredentialInUse(credentialRef: UUID): Boolean {
+        return repository.existsByCredentialRef(credentialRef)
+    }
+
     private fun findSource(authenticatedUser: AuthenticatedUser, workspaceId: UUID, sourceId: UUID): IngestionSource {
         // TODO(ING-9): filtr po użytkowniku zastępuje brak weryfikacji członkostwa w workspace
         return repository.findByConnectedByUserIdAndIdAndWorkspaceId(

@@ -332,4 +332,23 @@ class IngestionSourceServiceTest {
             assertNotNull(method.getAnnotation(Transactional::class.java))
         }
     }
+
+    @Nested
+    inner class IsCredentialInUse {
+        private val credentialRef = UUID.randomUUID()
+
+        @Test
+        fun `is true when a source references the credential`() {
+            every { repository.existsByCredentialRef(credentialRef) } returns true
+
+            assertEquals(true, service.isCredentialInUse(credentialRef))
+        }
+
+        @Test
+        fun `is false when no source references the credential`() {
+            every { repository.existsByCredentialRef(credentialRef) } returns false
+
+            assertEquals(false, service.isCredentialInUse(credentialRef))
+        }
+    }
 }

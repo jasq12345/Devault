@@ -6,4 +6,5 @@ import java.util.UUID
 
 interface CredentialRepository : JpaRepository<Credential, UUID> {
     fun findAllByConnectedByUserId(userId: UUID): List<Credential>
+    fun findByIdAndConnectedByUserId(id: UUID, userId: UUID): Credential?
 }

@@ -1,11 +1,13 @@
 package dev.devault.ingestion.service
 
 import dev.devault.ingestion.dto.request.CredentialRequestDto
+import dev.devault.ingestion.exception.CredentialNotFoundException
 import dev.devault.ingestion.model.Credential
 import dev.devault.ingestion.repository.CredentialRepository
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -14,6 +16,7 @@ import java.util.Optional
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 
 class CredentialServiceTest {
     private val repository = mockk<CredentialRepository>()
@@ -104,6 +107,55 @@ class CredentialServiceTest {
             assertThrows<NoSuchElementException> {
                 service.getTokenForUser(credentialId, userId)
             }
+        }
+    }
+
+    @Nested
+    inner class RequireOwned {
+        @Test
+        fun `passes when the credential belongs to the user`() {
+            every { repository.findByIdAndConnectedByUserId(credentialId, userId) } returns
+                Credential(credentialId, "label", userId, token)
+
+            service.requireOwned(credentialId, userId)
+        }
+
+        @Test
+        fun `throws not found when the credential is missing or belongs to another user`() {
+            every { repository.findByIdAndConnectedByUserId(credentialId, userId) } returns null
+
+            val exception = assertThrows<CredentialNotFoundException> {
+                service.requireOwned(credentialId, userId)
+            }
+
+            // GlobalExceptionHandler maps NoSuchElementException to 404.
+            assertIs<NoSuchElementException>(exception)
+        }
+    }
+
+    @Nested
+    inner class Delete {
+        private val credential = Credential(credentialId, "label", userId, token)
+
+        @Test
+        fun `deletes a credential of the caller`() {
+            every { repository.findByIdAndConnectedByUserId(credentialId, userId) } returns credential
+            every { repository.delete(credential) } returns Unit
+
+            service.delete(credentialId, userId)
+
+            verify(exactly = 1) { repository.delete(credential) }
+        }
+
+        @Test
+        fun `throws not found and deletes nothing when the credential is missing or belongs to another user`() {
+            every { repository.findByIdAndConnectedByUserId(credentialId, userId) } returns null
+
+            assertThrows<CredentialNotFoundException> {
+                service.delete(credentialId, userId)
+            }
+
+            verify(exactly = 0) { repository.delete(any()) }
         }
     }
 }
