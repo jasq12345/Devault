@@ -6,6 +6,7 @@ import dev.devault.ingestion.client.github.dto.IssueLikeConnection
 import dev.devault.ingestion.client.github.dto.IssuesResponse
 import dev.devault.ingestion.client.github.dto.PullRequestsResponse
 import dev.devault.ingestion.client.github.dto.RateLimitInfo
+import dev.devault.ingestion.client.github.dto.RateLimitResponse
 import dev.devault.ingestion.client.github.dto.RepositoryHistoryResponse
 import dev.devault.ingestion.exception.GitHubApiException
 import dev.devault.ingestion.service.CredentialService
@@ -117,6 +118,16 @@ class GitHubClient(
               }
             }
         """
+
+        private const val RATE_LIMIT_QUERY: String = """
+            query {
+              rateLimit {
+                remaining
+                resetAt
+                cost
+              }
+            }
+        """
     }
     fun fetchCommitHistory(userId: UUID, owner: String, name: String, credentialRef: UUID, cursor: String?): HistoryConnection {
         val token = credentialService.getTokenForUser(credentialRef, userId)
@@ -186,6 +197,27 @@ class GitHubClient(
         lastKnownRateLimit[credentialRef] = unwrappedResponse.rateLimit
 
         return unwrappedResponse.repository?.issues ?: throw GitHubApiException("Empty response from GitHub API")
+    }
+
+    // Asks GitHub directly and does not go through awaitRateLimit: the answer matters most when few points are left.
+    fun fetchRateLimit(userId: UUID, credentialRef: UUID): RateLimitInfo {
+        val token = credentialService.getTokenForUser(credentialRef, userId)
+        val requestBody = mapOf("query" to RATE_LIMIT_QUERY)
+
+        val response = restClient.post()
+            .uri("/graphql")
+            .header("Authorization", "Bearer $token")
+            .body(requestBody)
+            .retrieve()
+            .body(object : ParameterizedTypeReference<GraphQLResponse<RateLimitResponse>>() {})
+            ?: throw GitHubApiException("Empty response from GitHub API")
+
+        val rateLimit = response.unwrap().rateLimit
+            ?: throw GitHubApiException("GitHub did not report a rate limit")
+
+        lastKnownRateLimit[credentialRef] = rateLimit
+
+        return rateLimit
     }
 
     fun getLastKnownRateLimit(credentialRef: UUID): RateLimitInfo? = lastKnownRateLimit[credentialRef]
