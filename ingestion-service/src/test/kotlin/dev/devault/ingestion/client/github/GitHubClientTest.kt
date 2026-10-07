@@ -22,7 +22,10 @@ import org.springframework.test.web.client.response.MockRestResponseCreators.wit
 import org.springframework.test.web.client.response.MockRestResponseCreators.withUnauthorizedRequest
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientResponseException
+import java.time.Clock
+import java.time.Duration
 import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -39,7 +42,15 @@ class GitHubClientTest {
     // Same defaults as RestClient.create("https://api.github.com") in IngestionAutoConfiguration.
     private val restClientBuilder = RestClient.builder().baseUrl("https://api.github.com")
     private val server = MockRestServiceServer.bindTo(restClientBuilder).build()
-    private val client = GitHubClient(restClientBuilder.build(), credentialService)
+
+    // The clock stands still and waiting is only recorded, so the rate limit tests run instantly.
+    private val clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)
+    private val pauses = mutableListOf<Duration>()
+    private val client = object : GitHubClient(restClientBuilder.build(), credentialService, clock) {
+        override fun pause(duration: Duration) {
+            pauses += duration
+        }
+    }
 
     private val userId = UUID.randomUUID()
     private val credentialRef = UUID.randomUUID()
@@ -102,11 +113,11 @@ class GitHubClientTest {
         @Test
         fun `remembers the rate limit of the last response`() {
             respondWith(COMMIT_HISTORY_RESPONSE)
-            assertNull(client.getLastKnownRateLimit())
+            assertNull(client.getLastKnownRateLimit(credentialRef))
 
             client.fetchCommitHistory(userId, "octo", "repo", credentialRef, null)
 
-            val rateLimit = client.getLastKnownRateLimit()
+            val rateLimit = client.getLastKnownRateLimit(credentialRef)
             assertEquals(4990, rateLimit?.remaining)
             assertEquals(1, rateLimit?.cost)
             assertEquals(Instant.parse("2026-01-01T00:00:00Z"), rateLimit?.resetAt)
@@ -163,7 +174,7 @@ class GitHubClientTest {
             val second = page.nodes.last()
             assertNull(second.body)
             assertNull(second.author)
-            assertEquals(4980, client.getLastKnownRateLimit()?.remaining)
+            assertEquals(4980, client.getLastKnownRateLimit(credentialRef)?.remaining)
         }
     }
 
@@ -200,7 +211,7 @@ class GitHubClientTest {
             assertEquals("Takes minutes", issue.body)
             assertEquals("OPEN", issue.state)
             assertEquals("jan", issue.author?.login)
-            assertEquals(4970, client.getLastKnownRateLimit()?.remaining)
+            assertEquals(4970, client.getLastKnownRateLimit(credentialRef)?.remaining)
         }
     }
 
@@ -343,10 +354,142 @@ class GitHubClientTest {
         }
     }
 
+    @Nested
+    inner class RateLimitGate {
+        private val otherCredentialRef = UUID.randomUUID()
+
+        @BeforeEach
+        fun stubOtherCredential() {
+            every { credentialService.getTokenForUser(otherCredentialRef, userId) } returns "other-test-token-not-a-real-pat"
+        }
+
+        // MockRestServiceServer wants every response registered before the first request,
+        // so each test first queues the limits GitHub will report and then sends the requests.
+        private fun queueLimit(remaining: Int, resetAt: String) = respondWith(issuesResponse(remaining, resetAt))
+
+        private fun fetchIssues(credential: UUID = credentialRef) =
+            client.fetchIssues(userId, "octo", "repo", credential, null)
+
+        @Test
+        fun `keeps the limits of two credentials apart`() {
+            queueLimit(remaining = 4000, resetAt = "2026-01-01T01:00:00Z")
+            queueLimit(remaining = 12, resetAt = "2026-01-01T00:30:00Z")
+
+            fetchIssues()
+            fetchIssues(otherCredentialRef)
+
+            assertEquals(4000, client.getLastKnownRateLimit(credentialRef)?.remaining)
+            assertEquals(12, client.getLastKnownRateLimit(otherCredentialRef)?.remaining)
+        }
+
+        @Test
+        fun `does not wait before the first request of a credential`() {
+            queueLimit(remaining = 4000, resetAt = "2026-01-01T01:00:00Z")
+
+            fetchIssues()
+
+            assertEquals(emptyList(), pauses)
+        }
+
+        @Test
+        fun `does not wait while more points than the reserve are left`() {
+            queueLimit(remaining = 51, resetAt = "2026-01-01T00:10:00Z")
+            queueLimit(remaining = 50, resetAt = "2026-01-01T00:10:00Z")
+
+            fetchIssues()
+            fetchIssues()
+
+            assertEquals(emptyList(), pauses)
+        }
+
+        @Test
+        fun `waits until the reset plus a margin once the points are down to the reserve`() {
+            queueLimit(remaining = 50, resetAt = "2026-01-01T00:10:00Z")
+            queueLimit(remaining = 4999, resetAt = "2026-01-01T01:10:00Z")
+
+            fetchIssues()
+            fetchIssues()
+
+            // The clock shows 00:00:00, the limit resets at 00:10:00, the margin is 2 seconds.
+            assertEquals(listOf(Duration.ofMinutes(10).plusSeconds(2)), pauses)
+            server.verify()
+        }
+
+        @Test
+        fun `goes back to full speed after the response with the renewed limit`() {
+            queueLimit(remaining = 50, resetAt = "2026-01-01T00:10:00Z")
+            queueLimit(remaining = 4999, resetAt = "2026-01-01T01:10:00Z")
+            queueLimit(remaining = 4998, resetAt = "2026-01-01T01:10:00Z")
+
+            repeat(3) { fetchIssues() }
+
+            // Only the second request waited; the third one saw the renewed limit.
+            assertEquals(1, pauses.size)
+        }
+
+        @Test
+        fun `does not wait when the reset time has already passed`() {
+            queueLimit(remaining = 3, resetAt = "2025-12-31T23:00:00Z")
+            queueLimit(remaining = 4999, resetAt = "2026-01-01T01:00:00Z")
+
+            fetchIssues()
+            fetchIssues()
+
+            assertEquals(emptyList(), pauses)
+        }
+
+        @Test
+        fun `a used up credential does not hold back another one`() {
+            queueLimit(remaining = 0, resetAt = "2026-01-01T00:10:00Z")
+            queueLimit(remaining = 4000, resetAt = "2026-01-01T01:00:00Z")
+
+            fetchIssues()
+            fetchIssues(otherCredentialRef)
+
+            assertEquals(emptyList(), pauses)
+        }
+
+        @Test
+        fun `applies to commits and pull requests as well`() {
+            queueLimit(remaining = 10, resetAt = "2026-01-01T00:01:00Z")
+            respondWith(COMMIT_HISTORY_RESPONSE)
+            queueLimit(remaining = 10, resetAt = "2026-01-01T00:01:00Z")
+            respondWith(PULL_REQUESTS_RESPONSE)
+
+            fetchIssues()
+            client.fetchCommitHistory(userId, "octo", "repo", credentialRef, null)
+            fetchIssues()
+            client.fetchPullRequests(userId, "octo", "repo", credentialRef, null)
+
+            // The commit request and the pull request one each followed a response with 10 points left.
+            assertEquals(List(2) { Duration.ofSeconds(62) }, pauses)
+        }
+
+        @Test
+        fun `rejects a foreign credential at once instead of waiting first`() {
+            queueLimit(remaining = 0, resetAt = "2026-01-01T00:10:00Z")
+            fetchIssues()
+            every { credentialService.getTokenForUser(credentialRef, userId) } throws AccessDeniedException("Access denied")
+
+            assertThrows<AccessDeniedException> { fetchIssues() }
+
+            assertEquals(emptyList(), pauses)
+        }
+    }
+
     private fun respondWith(json: String) {
         server.expect(requestTo("https://api.github.com/graphql"))
             .andRespond(withSuccess(json, MediaType.APPLICATION_JSON))
     }
+
+    private fun issuesResponse(remaining: Int, resetAt: String) = """
+        {
+          "data": {
+            "rateLimit": { "remaining": $remaining, "resetAt": "$resetAt", "cost": 1 },
+            "repository": { "issues": { "pageInfo": { "hasNextPage": false, "endCursor": null }, "nodes": [] } }
+          }
+        }
+    """
 
     private companion object {
         const val COMMIT_HISTORY_RESPONSE = """
