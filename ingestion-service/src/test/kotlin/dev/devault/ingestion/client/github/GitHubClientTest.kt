@@ -477,10 +477,87 @@ class GitHubClientTest {
         }
     }
 
+    @Nested
+    inner class FetchRateLimit {
+        @Test
+        fun `posts the rate limit query with the token and no variables`() {
+            server.expect(requestTo("https://api.github.com/graphql"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("Authorization", "Bearer $token"))
+                .andExpect(jsonPath("$.query", containsString("rateLimit {")))
+                .andExpect(jsonPath("$.variables").doesNotExist())
+                .andRespond(withSuccess(rateLimitResponse(4321, "2026-01-01T00:45:00Z"), MediaType.APPLICATION_JSON))
+
+            client.fetchRateLimit(userId, credentialRef)
+
+            server.verify()
+        }
+
+        @Test
+        fun `returns the limit GitHub reports and remembers it for the credential`() {
+            respondWith(rateLimitResponse(4321, "2026-01-01T00:45:00Z"))
+
+            val rateLimit = client.fetchRateLimit(userId, credentialRef)
+
+            assertEquals(4321, rateLimit.remaining)
+            assertEquals(Instant.parse("2026-01-01T00:45:00Z"), rateLimit.resetAt)
+            assertEquals(rateLimit, client.getLastKnownRateLimit(credentialRef))
+        }
+
+        @Test
+        fun `answers at once even when the points of the credential are used up`() {
+            respondWith(issuesResponse(remaining = 0, resetAt = "2026-01-01T00:10:00Z"))
+            respondWith(rateLimitResponse(0, "2026-01-01T00:10:00Z"))
+            client.fetchIssues(userId, "octo", "repo", credentialRef, null)
+
+            val rateLimit = client.fetchRateLimit(userId, credentialRef)
+
+            assertEquals(0, rateLimit.remaining)
+            assertEquals(emptyList(), pauses)
+        }
+
+        @Test
+        fun `throws when GitHub reports no rate limit`() {
+            respondWith("""{ "data": { "rateLimit": null } }""")
+
+            val exception = assertThrows<GitHubApiException> {
+                client.fetchRateLimit(userId, credentialRef)
+            }
+
+            assertEquals("GitHub did not report a rate limit", exception.message)
+        }
+
+        @Test
+        fun `GraphQL errors become GitHubApiException`() {
+            respondWith("""{ "data": null, "errors": [ { "type": "RATE_LIMITED", "message": "API rate limit exceeded" } ] }""")
+
+            val exception = assertThrows<GitHubApiException> {
+                client.fetchRateLimit(userId, credentialRef)
+            }
+
+            assertEquals("API rate limit exceeded", exception.message)
+        }
+
+        @Test
+        fun `does not call GitHub when the credential belongs to another user`() {
+            every { credentialService.getTokenForUser(credentialRef, userId) } throws AccessDeniedException("Access denied")
+
+            assertThrows<AccessDeniedException> {
+                client.fetchRateLimit(userId, credentialRef)
+            }
+
+            server.verify()
+        }
+    }
+
     private fun respondWith(json: String) {
         server.expect(requestTo("https://api.github.com/graphql"))
             .andRespond(withSuccess(json, MediaType.APPLICATION_JSON))
     }
+
+    private fun rateLimitResponse(remaining: Int, resetAt: String) = """
+        { "data": { "rateLimit": { "remaining": $remaining, "resetAt": "$resetAt", "cost": 1 } } }
+    """
 
     private fun issuesResponse(remaining: Int, resetAt: String) = """
         {

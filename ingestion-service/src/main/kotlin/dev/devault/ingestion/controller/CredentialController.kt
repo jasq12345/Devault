@@ -4,8 +4,10 @@ import dev.devault.authlib.security.principal.AuthenticatedUser
 import dev.devault.commonlib.response.ApiResponse
 import dev.devault.ingestion.dto.request.CredentialRequestDto
 import dev.devault.ingestion.dto.response.CredentialResponseDto
+import dev.devault.ingestion.dto.response.RateLimitResponseDto
 import dev.devault.ingestion.service.CredentialDeletionService
 import dev.devault.ingestion.service.CredentialService
+import dev.devault.ingestion.service.RateLimitService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -23,7 +25,8 @@ import java.util.UUID
 @RequestMapping("/credentials")
 class CredentialController(
     private val credentialService: CredentialService,
-    private val credentialDeletionService: CredentialDeletionService
+    private val credentialDeletionService: CredentialDeletionService,
+    private val rateLimitService: RateLimitService
 ){
     @GetMapping
     fun findAllCredentials(
@@ -47,5 +50,13 @@ class CredentialController(
     ): ResponseEntity<Void> {
         credentialDeletionService.delete(id, authenticatedUser.id)
         return ResponseEntity.noContent().build()
+    }
+
+    @GetMapping("/{id}/rate-limit")
+    fun findRateLimit(
+        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
+        @PathVariable id: UUID
+    ): ResponseEntity<ApiResponse<RateLimitResponseDto>> {
+        return ResponseEntity.ok(ApiResponse.ok(rateLimitService.findForCredential(id, authenticatedUser.id)))
     }
 }
