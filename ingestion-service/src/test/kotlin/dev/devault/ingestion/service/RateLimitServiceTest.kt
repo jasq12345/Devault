@@ -1,9 +1,9 @@
 package dev.devault.ingestion.service
 
-import dev.devault.ingestion.client.github.GitHubClient
+import dev.devault.ingestion.client.github.GithubClient
 import dev.devault.ingestion.client.github.dto.RateLimitInfo
 import dev.devault.ingestion.exception.CredentialNotFoundException
-import dev.devault.ingestion.exception.GitHubApiException
+import dev.devault.ingestion.exception.GithubApiException
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -16,8 +16,8 @@ import kotlin.test.assertEquals
 
 class RateLimitServiceTest {
     private val credentialService = mockk<CredentialService>()
-    private val gitHubClient = mockk<GitHubClient>()
-    private val service = RateLimitService(credentialService, gitHubClient)
+    private val githubClient = mockk<GithubClient>()
+    private val service = RateLimitService(credentialService, githubClient)
 
     private val userId = UUID.randomUUID()
     private val credentialId = UUID.randomUUID()
@@ -26,7 +26,7 @@ class RateLimitServiceTest {
     @Test
     fun `returns the limit GitHub reports for the caller's credential`() {
         every { credentialService.requireOwned(credentialId, userId) } returns Unit
-        every { gitHubClient.fetchRateLimit(userId, credentialId) } returns RateLimitInfo(remaining = 4321, resetAt = resetAt, cost = 1)
+        every { githubClient.fetchRateLimit(userId, credentialId) } returns RateLimitInfo(remaining = 4321, resetAt = resetAt, cost = 1)
 
         val result = service.findForCredential(credentialId, userId)
 
@@ -34,7 +34,7 @@ class RateLimitServiceTest {
         assertEquals(resetAt, result.resetAt)
         verifyOrder {
             credentialService.requireOwned(credentialId, userId)
-            gitHubClient.fetchRateLimit(userId, credentialId)
+            githubClient.fetchRateLimit(userId, credentialId)
         }
     }
 
@@ -47,15 +47,15 @@ class RateLimitServiceTest {
             service.findForCredential(credentialId, userId)
         }
 
-        verify(exactly = 0) { gitHubClient.fetchRateLimit(any(), any()) }
+        verify(exactly = 0) { githubClient.fetchRateLimit(any(), any()) }
     }
 
     @Test
     fun `passes a GitHub failure on to the caller`() {
         every { credentialService.requireOwned(credentialId, userId) } returns Unit
-        every { gitHubClient.fetchRateLimit(userId, credentialId) } throws GitHubApiException("API rate limit exceeded")
+        every { githubClient.fetchRateLimit(userId, credentialId) } throws GithubApiException("API rate limit exceeded")
 
-        val exception = assertThrows<GitHubApiException> {
+        val exception = assertThrows<GithubApiException> {
             service.findForCredential(credentialId, userId)
         }
 

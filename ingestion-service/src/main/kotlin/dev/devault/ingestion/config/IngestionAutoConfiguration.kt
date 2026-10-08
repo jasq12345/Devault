@@ -12,8 +12,8 @@ import java.time.Clock
 @Configuration
 class IngestionAutoConfiguration {
 
-    @Bean("gitHubRestClient")
-    fun gitHubRestClient(): RestClient {
+    @Bean("githubRestClient")
+    fun githubRestClient(): RestClient {
         return RestClient.create("https://api.github.com")
     }
 

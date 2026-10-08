@@ -1,6 +1,6 @@
 package dev.devault.ingestion.client.github.dto
 
-import dev.devault.ingestion.exception.GitHubApiException
+import dev.devault.ingestion.exception.GithubApiException
 
 data class GraphQLResponse<T>(
     val data: T? = null,
@@ -8,8 +8,8 @@ data class GraphQLResponse<T>(
 ) {
     fun unwrap(): T {
         if (!errors.isNullOrEmpty()) {
-            throw GitHubApiException(errors.joinToString("; ") { it.message })
+            throw GithubApiException(errors.joinToString("; ") { it.message })
         }
-        return data ?: throw GitHubApiException("GraphQL response missing data")
+        return data ?: throw GithubApiException("GraphQL response missing data")
     }
 }

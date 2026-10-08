@@ -1,6 +1,6 @@
 package dev.devault.ingestion.client.github
 
-import dev.devault.ingestion.exception.GitHubApiException
+import dev.devault.ingestion.exception.GithubApiException
 import dev.devault.ingestion.service.CredentialService
 import io.mockk.every
 import io.mockk.mockk
@@ -36,7 +36,7 @@ import kotlin.test.assertTrue
  * No real GitHub call is made: MockRestServiceServer replaces the HTTP layer of the RestClient,
  * so the real message converters (JSON <-> DTO) are still exercised.
  */
-class GitHubClientTest {
+class GithubClientTest {
     private val credentialService = mockk<CredentialService>()
 
     // Same defaults as RestClient.create("https://api.github.com") in IngestionAutoConfiguration.
@@ -46,7 +46,7 @@ class GitHubClientTest {
     // The clock stands still and waiting is only recorded, so the rate limit tests run instantly.
     private val clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)
     private val pauses = mutableListOf<Duration>()
-    private val client = object : GitHubClient(restClientBuilder.build(), credentialService, clock) {
+    private val client = object : GithubClient(restClientBuilder.build(), credentialService, clock) {
         override fun pause(duration: Duration) {
             pauses += duration
         }
@@ -127,7 +127,7 @@ class GitHubClientTest {
         fun `throws when the repository has no default branch`() {
             respondWith(EMPTY_REPOSITORY_RESPONSE)
 
-            val exception = assertThrows<GitHubApiException> {
+            val exception = assertThrows<GithubApiException> {
                 client.fetchCommitHistory(userId, "octo", "repo", credentialRef, null)
             }
 
@@ -218,10 +218,10 @@ class GitHubClientTest {
     @Nested
     inner class Errors {
         @Test
-        fun `GraphQL errors with HTTP 200 become GitHubApiException`() {
+        fun `GraphQL errors with HTTP 200 become GithubApiException`() {
             respondWith("""{ "data": null, "errors": [ { "message": "Something went wrong" } ] }""")
 
-            val exception = assertThrows<GitHubApiException> {
+            val exception = assertThrows<GithubApiException> {
                 client.fetchIssues(userId, "octo", "repo", credentialRef, null)
             }
 
@@ -247,7 +247,7 @@ class GitHubClientTest {
                 """
             )
 
-            val exception = assertThrows<GitHubApiException> {
+            val exception = assertThrows<GithubApiException> {
                 client.fetchPullRequests(userId, "octo", "repo", credentialRef, null)
             }
 
@@ -255,10 +255,10 @@ class GitHubClientTest {
         }
 
         @Test
-        fun `unknown repository becomes GitHubApiException with the GitHub message`() {
+        fun `unknown repository becomes GithubApiException with the GitHub message`() {
             respondWith(REPOSITORY_NOT_FOUND_RESPONSE)
 
-            val exception = assertThrows<GitHubApiException> {
+            val exception = assertThrows<GithubApiException> {
                 client.fetchCommitHistory(userId, "octo", "missing", credentialRef, null)
             }
 
@@ -269,10 +269,10 @@ class GitHubClientTest {
         fun `unknown repository is reported the same way for pull requests and issues`() {
             repeat(2) { respondWith(REPOSITORY_NOT_FOUND_RESPONSE) }
 
-            val pullRequestsException = assertThrows<GitHubApiException> {
+            val pullRequestsException = assertThrows<GithubApiException> {
                 client.fetchPullRequests(userId, "octo", "missing", credentialRef, null)
             }
-            val issuesException = assertThrows<GitHubApiException> {
+            val issuesException = assertThrows<GithubApiException> {
                 client.fetchIssues(userId, "octo", "missing", credentialRef, null)
             }
 
@@ -281,25 +281,25 @@ class GitHubClientTest {
         }
 
         @Test
-        fun `null repository without errors becomes GitHubApiException`() {
+        fun `null repository without errors becomes GithubApiException`() {
             repeat(3) { respondWith(NULL_REPOSITORY_RESPONSE) }
 
-            assertThrows<GitHubApiException> {
+            assertThrows<GithubApiException> {
                 client.fetchCommitHistory(userId, "octo", "repo", credentialRef, null)
             }
-            assertThrows<GitHubApiException> {
+            assertThrows<GithubApiException> {
                 client.fetchPullRequests(userId, "octo", "repo", credentialRef, null)
             }
-            assertThrows<GitHubApiException> {
+            assertThrows<GithubApiException> {
                 client.fetchIssues(userId, "octo", "repo", credentialRef, null)
             }
         }
 
         @Test
-        fun `response without a body becomes GitHubApiException`() {
+        fun `response without a body becomes GithubApiException`() {
             server.expect(requestTo("https://api.github.com/graphql")).andRespond(withSuccess())
 
-            val exception = assertThrows<GitHubApiException> {
+            val exception = assertThrows<GithubApiException> {
                 client.fetchIssues(userId, "octo", "repo", credentialRef, null)
             }
 
@@ -520,7 +520,7 @@ class GitHubClientTest {
         fun `throws when GitHub reports no rate limit`() {
             respondWith("""{ "data": { "rateLimit": null } }""")
 
-            val exception = assertThrows<GitHubApiException> {
+            val exception = assertThrows<GithubApiException> {
                 client.fetchRateLimit(userId, credentialRef)
             }
 
@@ -528,10 +528,10 @@ class GitHubClientTest {
         }
 
         @Test
-        fun `GraphQL errors become GitHubApiException`() {
+        fun `GraphQL errors become GithubApiException`() {
             respondWith("""{ "data": null, "errors": [ { "type": "RATE_LIMITED", "message": "API rate limit exceeded" } ] }""")
 
-            val exception = assertThrows<GitHubApiException> {
+            val exception = assertThrows<GithubApiException> {
                 client.fetchRateLimit(userId, credentialRef)
             }
 

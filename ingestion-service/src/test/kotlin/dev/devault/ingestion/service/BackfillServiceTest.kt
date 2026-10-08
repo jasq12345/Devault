@@ -1,12 +1,12 @@
 package dev.devault.ingestion.service
 
-import dev.devault.ingestion.client.github.GitHubClient
+import dev.devault.ingestion.client.github.GithubClient
 import dev.devault.ingestion.client.github.dto.CommitNode
 import dev.devault.ingestion.client.github.dto.HistoryConnection
 import dev.devault.ingestion.client.github.dto.IssueLikeConnection
 import dev.devault.ingestion.client.github.dto.IssueLikeNode
 import dev.devault.ingestion.client.github.dto.PageInfo
-import dev.devault.ingestion.exception.GitHubApiException
+import dev.devault.ingestion.exception.GithubApiException
 import dev.devault.ingestion.model.IngestedDocument
 import dev.devault.ingestion.model.IngestionSource
 import dev.devault.ingestion.repository.IngestedDocumentRepository
@@ -32,8 +32,8 @@ import kotlin.test.assertTrue
 class BackfillServiceTest {
     private val documentRepository = mockk<IngestedDocumentRepository>()
     private val sourceRepository = mockk<IngestionSourceRepository>()
-    private val gitHubClient = mockk<GitHubClient>()
-    private val service = BackfillService(documentRepository, sourceRepository, gitHubClient)
+    private val githubClient = mockk<GithubClient>()
+    private val service = BackfillService(documentRepository, sourceRepository, githubClient)
 
     private val sourceId = UUID.randomUUID()
     private val userId = UUID.randomUUID()
@@ -59,9 +59,9 @@ class BackfillServiceTest {
         }
         every { documentRepository.existsBySourceAndExternalRef(any(), any()) } returns false
         every { documentRepository.saveAndFlush(capture(savedDocuments)) } answers { firstArg() }
-        every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns commitPage()
-        every { gitHubClient.fetchPullRequests(any(), any(), any(), any(), any()) } returns issueLikePage()
-        every { gitHubClient.fetchIssues(any(), any(), any(), any(), any()) } returns issueLikePage()
+        every { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns commitPage()
+        every { githubClient.fetchPullRequests(any(), any(), any(), any(), any()) } returns issueLikePage()
+        every { githubClient.fetchIssues(any(), any(), any(), any(), any()) } returns issueLikePage()
     }
 
     @Nested
@@ -75,20 +75,20 @@ class BackfillServiceTest {
 
         @Test
         fun `marks the source as ERROR when GitHub fails and stops syncing`() {
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } throws
-                GitHubApiException("boom")
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } throws
+                GithubApiException("boom")
 
             service.runBackfill(sourceId)
 
             assertEquals(listOf(StatusType.SYNCING, StatusType.ERROR), savedStatuses)
-            verify(exactly = 0) { gitHubClient.fetchPullRequests(any(), any(), any(), any(), any()) }
-            verify(exactly = 0) { gitHubClient.fetchIssues(any(), any(), any(), any(), any()) }
+            verify(exactly = 0) { githubClient.fetchPullRequests(any(), any(), any(), any(), any()) }
+            verify(exactly = 0) { githubClient.fetchIssues(any(), any(), any(), any(), any()) }
         }
 
         @Test
         fun `marks the source as ERROR when a later step fails`() {
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns commitPage(commit("abc"))
-            every { gitHubClient.fetchIssues(any(), any(), any(), any(), any()) } throws IllegalStateException("boom")
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns commitPage(commit("abc"))
+            every { githubClient.fetchIssues(any(), any(), any(), any(), any()) } throws IllegalStateException("boom")
 
             service.runBackfill(sourceId)
 
@@ -106,47 +106,47 @@ class BackfillServiceTest {
             }
 
             verify(exactly = 0) { sourceRepository.save(any()) }
-            verify(exactly = 0) { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) }
+            verify(exactly = 0) { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) }
         }
     }
 
     @Nested
-    inner class GitHubCalls {
+    inner class GithubCalls {
         @Test
         fun `uses owner and name from externalId with the user and credential of the source`() {
             service.runBackfill(sourceId)
 
             verifyOrder {
-                gitHubClient.fetchCommitHistory(userId, "octo", "repo", credentialRef, null)
-                gitHubClient.fetchPullRequests(userId, "octo", "repo", credentialRef, null)
-                gitHubClient.fetchIssues(userId, "octo", "repo", credentialRef, null)
+                githubClient.fetchCommitHistory(userId, "octo", "repo", credentialRef, null)
+                githubClient.fetchPullRequests(userId, "octo", "repo", credentialRef, null)
+                githubClient.fetchIssues(userId, "octo", "repo", credentialRef, null)
             }
         }
 
         @Test
         fun `follows the commit cursor until there is no next page`() {
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), null) } returns
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), null) } returns
                 commitPage(commit("a1"), commit("a2"), nextCursor = "cursor-1")
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), "cursor-1") } returns
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), "cursor-1") } returns
                 commitPage(commit("b1"), nextCursor = "cursor-2")
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), "cursor-2") } returns
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), "cursor-2") } returns
                 commitPage(commit("c1"))
 
             service.runBackfill(sourceId)
 
-            verify(exactly = 3) { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) }
+            verify(exactly = 3) { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) }
             assertEquals(listOf("a1", "a2", "b1", "c1"), savedDocuments.map { it.externalRef })
         }
 
         @Test
         fun `follows the pull request and issue cursors independently`() {
-            every { gitHubClient.fetchPullRequests(any(), any(), any(), any(), null) } returns
+            every { githubClient.fetchPullRequests(any(), any(), any(), any(), null) } returns
                 issueLikePage(issueLike(1), nextCursor = "pr-cursor")
-            every { gitHubClient.fetchPullRequests(any(), any(), any(), any(), "pr-cursor") } returns
+            every { githubClient.fetchPullRequests(any(), any(), any(), any(), "pr-cursor") } returns
                 issueLikePage(issueLike(2))
-            every { gitHubClient.fetchIssues(any(), any(), any(), any(), null) } returns
+            every { githubClient.fetchIssues(any(), any(), any(), any(), null) } returns
                 issueLikePage(issueLike(3), nextCursor = "issue-cursor")
-            every { gitHubClient.fetchIssues(any(), any(), any(), any(), "issue-cursor") } returns
+            every { githubClient.fetchIssues(any(), any(), any(), any(), "issue-cursor") } returns
                 issueLikePage(issueLike(4))
 
             service.runBackfill(sourceId)
@@ -162,7 +162,7 @@ class BackfillServiceTest {
     inner class Documents {
         @Test
         fun `stores a commit with oid as externalRef and message as content`() {
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
                 commitPage(commit("abc123", message = "feat: add backfill"))
 
             service.runBackfill(sourceId)
@@ -177,7 +177,7 @@ class BackfillServiceTest {
 
         @Test
         fun `stores a pull request with number as externalRef and title plus body as content`() {
-            every { gitHubClient.fetchPullRequests(any(), any(), any(), any(), any()) } returns
+            every { githubClient.fetchPullRequests(any(), any(), any(), any(), any()) } returns
                 issueLikePage(issueLike(42, title = "Add backfill", body = "Closes #7"))
 
             service.runBackfill(sourceId)
@@ -190,7 +190,7 @@ class BackfillServiceTest {
 
         @Test
         fun `stores an issue with number as externalRef and title plus body as content`() {
-            every { gitHubClient.fetchIssues(any(), any(), any(), any(), any()) } returns
+            every { githubClient.fetchIssues(any(), any(), any(), any(), any()) } returns
                 issueLikePage(issueLike(7, title = "Backfill is slow", body = "Takes minutes"))
 
             service.runBackfill(sourceId)
@@ -203,7 +203,7 @@ class BackfillServiceTest {
 
         @Test
         fun `missing body is stored as title only`() {
-            every { gitHubClient.fetchIssues(any(), any(), any(), any(), any()) } returns
+            every { githubClient.fetchIssues(any(), any(), any(), any(), any()) } returns
                 issueLikePage(issueLike(7, title = "No description", body = null))
 
             service.runBackfill(sourceId)
@@ -213,7 +213,7 @@ class BackfillServiceTest {
 
         @Test
         fun `content hash is the lowercase hex SHA-256 of the content`() {
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
                 commitPage(commit("abc123", message = "abc"))
 
             service.runBackfill(sourceId)
@@ -227,7 +227,7 @@ class BackfillServiceTest {
 
         @Test
         fun `skips a document that is already stored and keeps going`() {
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
                 commitPage(commit("first"), commit("duplicate"), commit("last"))
             every { documentRepository.existsBySourceAndExternalRef(source, "duplicate") } returns true
 
@@ -235,13 +235,13 @@ class BackfillServiceTest {
 
             assertEquals(listOf("first", "last"), savedDocuments.map { it.externalRef })
             assertEquals(listOf(StatusType.SYNCING, StatusType.ACTIVE), savedStatuses)
-            verify(exactly = 1) { gitHubClient.fetchPullRequests(any(), any(), any(), any(), any()) }
+            verify(exactly = 1) { githubClient.fetchPullRequests(any(), any(), any(), any(), any()) }
         }
 
         @Test
         fun `looks up existing documents by source and externalRef`() {
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns commitPage(commit("abc123"))
-            every { gitHubClient.fetchIssues(any(), any(), any(), any(), any()) } returns issueLikePage(issueLike(7))
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns commitPage(commit("abc123"))
+            every { githubClient.fetchIssues(any(), any(), any(), any(), any()) } returns issueLikePage(issueLike(7))
 
             service.runBackfill(sourceId)
 
@@ -251,7 +251,7 @@ class BackfillServiceTest {
 
         @Test
         fun `a document that cannot be stored fails the backfill instead of being dropped`() {
-            every { gitHubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
+            every { githubClient.fetchCommitHistory(any(), any(), any(), any(), any()) } returns
                 commitPage(commit("first"), commit("broken"), commit("never-reached"))
             every { documentRepository.saveAndFlush(match { it.externalRef == "broken" }) } throws
                 DataIntegrityViolationException("value too long for type character varying(255)")
@@ -260,7 +260,7 @@ class BackfillServiceTest {
 
             assertEquals(listOf("first"), savedDocuments.map { it.externalRef })
             assertEquals(listOf(StatusType.SYNCING, StatusType.ERROR), savedStatuses)
-            verify(exactly = 0) { gitHubClient.fetchPullRequests(any(), any(), any(), any(), any()) }
+            verify(exactly = 0) { githubClient.fetchPullRequests(any(), any(), any(), any(), any()) }
         }
     }
 

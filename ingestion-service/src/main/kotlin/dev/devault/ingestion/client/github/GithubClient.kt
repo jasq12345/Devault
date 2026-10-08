@@ -8,7 +8,7 @@ import dev.devault.ingestion.client.github.dto.PullRequestsResponse
 import dev.devault.ingestion.client.github.dto.RateLimitInfo
 import dev.devault.ingestion.client.github.dto.RateLimitResponse
 import dev.devault.ingestion.client.github.dto.RepositoryHistoryResponse
-import dev.devault.ingestion.exception.GitHubApiException
+import dev.devault.ingestion.exception.GithubApiException
 import dev.devault.ingestion.service.CredentialService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
@@ -33,8 +33,8 @@ import java.util.concurrent.ConcurrentHashMap
     multiplier = 2.0,
     maxDelay = 30_000
 )
-class GitHubClient(
-    @Qualifier("gitHubRestClient") private val restClient: RestClient,
+class GithubClient(
+    @Qualifier("githubRestClient") private val restClient: RestClient,
     private val credentialService: CredentialService,
     private val clock: Clock,
 ) {
@@ -143,14 +143,14 @@ class GitHubClient(
             .body(requestBody)
             .retrieve()
             .body(object : ParameterizedTypeReference<GraphQLResponse<RepositoryHistoryResponse>>() {})
-            ?: throw GitHubApiException("Empty response from GitHub API")
+            ?: throw GithubApiException("Empty response from GitHub API")
 
         val unwrappedResponse = response.unwrap()
 
         lastKnownRateLimit[credentialRef] = unwrappedResponse.rateLimit
 
         return unwrappedResponse.repository?.defaultBranchRef?.target?.history
-            ?: throw GitHubApiException("No commit history found")
+            ?: throw GithubApiException("No commit history found")
     }
 
     fun fetchPullRequests(userId: UUID, owner: String, name: String, credentialRef: UUID, cursor: String?): IssueLikeConnection {
@@ -167,13 +167,13 @@ class GitHubClient(
             .body(requestBody)
             .retrieve()
             .body(object : ParameterizedTypeReference<GraphQLResponse<PullRequestsResponse>>() {})
-            ?: throw GitHubApiException("Empty response from GitHub API")
+            ?: throw GithubApiException("Empty response from GitHub API")
 
         val unwrappedResponse = response.unwrap()
 
         lastKnownRateLimit[credentialRef] = unwrappedResponse.rateLimit
 
-        return unwrappedResponse.repository?.pullRequests ?: throw GitHubApiException("Empty response from GitHub API")
+        return unwrappedResponse.repository?.pullRequests ?: throw GithubApiException("Empty response from GitHub API")
     }
 
     fun fetchIssues(userId: UUID, owner: String, name: String, credentialRef: UUID, cursor: String?): IssueLikeConnection {
@@ -190,13 +190,13 @@ class GitHubClient(
             .body(requestBody)
             .retrieve()
             .body(object : ParameterizedTypeReference<GraphQLResponse<IssuesResponse>>() {})
-            ?: throw GitHubApiException("Empty response from GitHub API")
+            ?: throw GithubApiException("Empty response from GitHub API")
 
         val unwrappedResponse = response.unwrap()
 
         lastKnownRateLimit[credentialRef] = unwrappedResponse.rateLimit
 
-        return unwrappedResponse.repository?.issues ?: throw GitHubApiException("Empty response from GitHub API")
+        return unwrappedResponse.repository?.issues ?: throw GithubApiException("Empty response from GitHub API")
     }
 
     // Asks GitHub directly and does not go through awaitRateLimit: the answer matters most when few points are left.
@@ -210,10 +210,10 @@ class GitHubClient(
             .body(requestBody)
             .retrieve()
             .body(object : ParameterizedTypeReference<GraphQLResponse<RateLimitResponse>>() {})
-            ?: throw GitHubApiException("Empty response from GitHub API")
+            ?: throw GithubApiException("Empty response from GitHub API")
 
         val rateLimit = response.unwrap().rateLimit
-            ?: throw GitHubApiException("GitHub did not report a rate limit")
+            ?: throw GithubApiException("GitHub did not report a rate limit")
 
         lastKnownRateLimit[credentialRef] = rateLimit
 

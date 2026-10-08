@@ -33,14 +33,14 @@ import java.util.UUID
 import kotlin.test.assertEquals
 
 /**
- * Retrying is done by a Spring proxy around GitHubClient, so this test needs a (small) application context:
- * the real IngestionAutoConfiguration plus a GitHubClient whose HTTP layer is MockRestServiceServer.
+ * Retrying is done by a Spring proxy around GithubClient, so this test needs a (small) application context:
+ * the real IngestionAutoConfiguration plus a GithubClient whose HTTP layer is MockRestServiceServer.
  * No database and no real GitHub call. The first retry delay is 1 ms here instead of one second.
  */
-@SpringJUnitConfig(GitHubClientRetryTest.TestConfig::class)
+@SpringJUnitConfig(GithubClientRetryTest.TestConfig::class)
 @TestPropertySource(properties = ["ingestion.github.retry.delay=1"])
-class GitHubClientRetryTest(
-    @Autowired private val client: GitHubClient,
+class GithubClientRetryTest(
+    @Autowired private val client: GithubClient,
     @Autowired private val server: MockRestServiceServer,
     @Autowired private val credentialService: CredentialService
 ) {
@@ -126,8 +126,8 @@ class GitHubClientRetryTest(
 
         // Depends on mockServer so that the builder is already bound to it when the client is built.
         @Bean
-        fun gitHubClient(mockServer: MockRestServiceServer, credentialService: CredentialService, clock: Clock) =
-            GitHubClient(restClientBuilder.build(), credentialService, clock)
+        fun githubClient(mockServer: MockRestServiceServer, credentialService: CredentialService, clock: Clock) =
+            GithubClient(restClientBuilder.build(), credentialService, clock)
     }
 
     private companion object {
