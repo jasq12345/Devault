@@ -1,6 +1,6 @@
 package dev.devault.ingestion.client.github.dto
 
-import dev.devault.ingestion.exception.GitHubApiException
+import dev.devault.ingestion.exception.GithubApiException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
@@ -27,7 +27,7 @@ class GraphQLResponseTest {
             errors = listOf(GraphQLError("first problem"), GraphQLError("second problem"))
         )
 
-        val exception = assertThrows<GitHubApiException> { response.unwrap() }
+        val exception = assertThrows<GithubApiException> { response.unwrap() }
 
         assertEquals("first problem; second problem", exception.message)
     }
@@ -36,14 +36,14 @@ class GraphQLResponseTest {
     fun `throws when errors come together with partial data`() {
         val response = GraphQLResponse(data = "partial", errors = listOf(GraphQLError("problem")))
 
-        assertThrows<GitHubApiException> { response.unwrap() }
+        assertThrows<GithubApiException> { response.unwrap() }
     }
 
     @Test
     fun `throws when there is neither data nor errors`() {
         val response = GraphQLResponse<String>()
 
-        val exception = assertThrows<GitHubApiException> { response.unwrap() }
+        val exception = assertThrows<GithubApiException> { response.unwrap() }
 
         assertEquals("GraphQL response missing data", exception.message)
     }

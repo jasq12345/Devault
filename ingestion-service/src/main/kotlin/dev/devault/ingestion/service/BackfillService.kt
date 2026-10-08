@@ -1,6 +1,6 @@
 package dev.devault.ingestion.service
 
-import dev.devault.ingestion.client.github.GitHubClient
+import dev.devault.ingestion.client.github.GithubClient
 import dev.devault.ingestion.client.github.dto.CommitNode
 import dev.devault.ingestion.client.github.dto.HistoryConnection
 import dev.devault.ingestion.client.github.dto.IssueLikeNode
@@ -21,7 +21,7 @@ import java.util.UUID
 class BackfillService(
     private val documentRepository: IngestedDocumentRepository,
     private val sourceRepository: IngestionSourceRepository,
-    private val gitHubClient: GitHubClient
+    private val githubClient: GithubClient
 ) {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
@@ -55,7 +55,7 @@ class BackfillService(
         var cursor: String? = null
         var page: HistoryConnection
         do {
-            page = gitHubClient.fetchCommitHistory(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
+            page = githubClient.fetchCommitHistory(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)
@@ -64,7 +64,7 @@ class BackfillService(
     private fun syncPullRequests(source: IngestionSource) {
         var cursor: String? = null
         do {
-            val page = gitHubClient.fetchPullRequests(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
+            val page = githubClient.fetchPullRequests(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node, DocumentType.PULL_REQUEST) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)
@@ -73,7 +73,7 @@ class BackfillService(
     private fun syncIssues(source: IngestionSource) {
         var cursor: String? = null
         do {
-            val page = gitHubClient.fetchIssues(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
+            val page = githubClient.fetchIssues(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node, DocumentType.ISSUE) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)

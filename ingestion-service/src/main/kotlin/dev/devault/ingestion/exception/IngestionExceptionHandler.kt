@@ -9,11 +9,11 @@ import org.springframework.web.client.RestClientResponseException
 @RestControllerAdvice
 class IngestionExceptionHandler {
 
-    @ExceptionHandler(GitHubApiException::class)
-    fun handleGitHubApiError(ex: GitHubApiException) =
+    @ExceptionHandler(GithubApiException::class)
+    fun handleGithubApiError(ex: GithubApiException) =
         apiError(ex.message ?: "GitHub API error", HttpStatus.BAD_GATEWAY)
 
     @ExceptionHandler(RestClientResponseException::class)
-    fun handleGitHubHttpError(ex: RestClientResponseException) =
+    fun handleGithubHttpError(ex: RestClientResponseException) =
         apiError("GitHub API error", HttpStatus.BAD_GATEWAY)
 }
