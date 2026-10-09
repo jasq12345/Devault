@@ -46,6 +46,10 @@ class WorkspaceMemberService(
         return member.toResponse()
     }
 
+    fun findCurrentMember(authenticatedUser: AuthenticatedUser, workspaceId: UUID): WorkspaceMemberResponseDto {
+        return requireMember(workspaceId, authenticatedUser.id).toResponse()
+    }
+
     fun saveWorkspaceMember(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: SaveWorkspaceMemberDto): WorkspaceMemberResponseDto {
         val members = repository.findAllByWorkspaceId(workspaceId)
         if (members.isEmpty())
@@ -99,12 +103,16 @@ class WorkspaceMemberService(
         return repository.save(member).toResponse()
     }
 
-    private fun requireRole(workspaceId: UUID, userId: UUID, roles: List<WorkspaceRole>): WorkspaceMember {
+    private fun requireMember(workspaceId: UUID, userId: UUID): WorkspaceMember {
         if (!repository.existsByWorkspaceId(workspaceId))
             throw NoSuchElementException("Workspace not found")
 
-        val member = repository.findWorkspaceMemberByWorkspaceIdAndUserId(workspaceId, userId)
+        return repository.findWorkspaceMemberByWorkspaceIdAndUserId(workspaceId, userId)
             ?: throw AccessDeniedException("Access denied")
+    }
+
+    private fun requireRole(workspaceId: UUID, userId: UUID, roles: List<WorkspaceRole>): WorkspaceMember {
+        val member = requireMember(workspaceId, userId)
 
         if (member.role !in roles)
             throw AccessDeniedException("Access denied")
