@@ -81,4 +81,12 @@ class WorkspaceMemberController(
     ): ResponseEntity<ApiResponse<List<WorkspaceMemberResponseDto>>> {
         return ResponseEntity.ok(ApiResponse.ok(workspaceService.transferOwnership(authenticatedUser, workspaceId, dto)))
     }
+
+    @GetMapping("/me")
+    fun findCurrentMember(
+        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
+        @PathVariable workspaceId: UUID
+    ): ResponseEntity<ApiResponse<WorkspaceMemberResponseDto>> {
+        return ResponseEntity.ok(ApiResponse.ok(workspaceMemberService.findCurrentMember(authenticatedUser, workspaceId)))
+    }
 }
