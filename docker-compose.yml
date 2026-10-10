@@ -72,6 +72,7 @@ services:
       INGESTION_TOKEN_ENCRYPTION_KEY: ${INGESTION_TOKEN_ENCRYPTION_KEY}
       JWT_ISSUER: ${JWT_ISSUER}
       JWKS_HOST: ${JWKS_HOST}
+      WORKSPACE_HOST: ${WORKSPACE_HOST}
     depends_on:
       postgres:
         condition: service_healthy

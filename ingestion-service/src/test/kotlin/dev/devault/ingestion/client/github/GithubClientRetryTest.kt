@@ -38,7 +38,8 @@ import kotlin.test.assertEquals
  * No database and no real GitHub call. The first retry delay is 1 ms here instead of one second.
  */
 @SpringJUnitConfig(GithubClientRetryTest.TestConfig::class)
-@TestPropertySource(properties = ["ingestion.github.retry.delay=1"])
+// workspace.service.uri is needed only because the real configuration also builds the workspace RestClient.
+@TestPropertySource(properties = ["ingestion.github.retry.delay=1", "workspace.service.uri=http://workspace.test/api/v1"])
 class GithubClientRetryTest(
     @Autowired private val client: GithubClient,
     @Autowired private val server: MockRestServiceServer,
