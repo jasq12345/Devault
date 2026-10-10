@@ -11,7 +11,7 @@ import dev.devault.workspace.exception.UserAlreadyMemberException
 import dev.devault.workspace.model.Workspace
 import dev.devault.workspace.model.WorkspaceMember
 import dev.devault.workspace.repository.WorkspaceMemberRepository
-import dev.devault.workspace.type.WorkspaceRole
+import dev.devault.commonlib.type.WorkspaceRole
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.security.access.AccessDeniedException

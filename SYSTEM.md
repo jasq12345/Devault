@@ -14,7 +14,8 @@
 - **auth-service-lib** – JWT validation against the auth-service JWKS, `AuthenticatedUser` principal,
   default stateless `SecurityFilterChain` (`@ConditionalOnMissingBean`, so a service can replace it –
   `auth-service` does, with its own `SecurityConfig`).
-- **common-lib** – shared web code: `ApiResponse`, `GlobalExceptionHandler`, OpenAPI auto-configuration.
+- **common-lib** – shared web code: `ApiResponse`, `GlobalExceptionHandler`, OpenAPI auto-configuration,
+  and types that travel between services (`WorkspaceRole`).
   Everything is wired through `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`.
 - **build-logic** – included build (`pluginManagement { includeBuild("build-logic") }`) with Gradle
   convention plugins, written as precompiled script plugins in `build-logic/src/main/kotlin`.

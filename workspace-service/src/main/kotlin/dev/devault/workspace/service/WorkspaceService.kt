@@ -11,7 +11,7 @@ import dev.devault.workspace.dto.response.toResponse
 import dev.devault.workspace.exception.SlugAlreadyExistsException
 import dev.devault.workspace.model.Workspace
 import dev.devault.workspace.repository.WorkspaceRepository
-import dev.devault.workspace.type.WorkspaceRole
+import dev.devault.commonlib.type.WorkspaceRole
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

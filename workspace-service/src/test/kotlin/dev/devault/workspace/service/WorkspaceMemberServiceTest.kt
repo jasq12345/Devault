@@ -9,7 +9,7 @@ import dev.devault.workspace.exception.UserAlreadyMemberException
 import dev.devault.workspace.model.Workspace
 import dev.devault.workspace.model.WorkspaceMember
 import dev.devault.workspace.repository.WorkspaceMemberRepository
-import dev.devault.workspace.type.WorkspaceRole
+import dev.devault.commonlib.type.WorkspaceRole
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
