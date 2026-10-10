@@ -27,7 +27,7 @@ class JwtAuthenticationProvider(
         val authorities = authoritiesList.map { SimpleGrantedAuthority(it) }
 
         val principal = AuthenticatedUser(id, username, authoritiesList)
-        return UsernamePasswordAuthenticationToken(principal, null, authorities)
+        return UsernamePasswordAuthenticationToken(principal, token, authorities)
     }
 
     override fun supports(authentication: Class<*>): Boolean =
