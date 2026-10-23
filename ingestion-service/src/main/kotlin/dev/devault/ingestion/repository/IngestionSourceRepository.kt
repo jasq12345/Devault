@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
 interface IngestionSourceRepository : JpaRepository<IngestionSource, UUID> {
-    fun findAllByConnectedByUserIdAndWorkspaceId(userId: UUID, workspaceId: UUID): List<IngestionSource>
-    fun findByConnectedByUserIdAndIdAndWorkspaceId(userId: UUID, sourceId: UUID, workspaceId: UUID): IngestionSource?
+    fun findByIdAndWorkspaceId(sourceId: UUID, workspaceId: UUID): IngestionSource?
     fun existsByCredentialRef(credentialRef: UUID): Boolean
+    fun findAllByWorkspaceId(workspaceId: UUID): List<IngestionSource>
 }

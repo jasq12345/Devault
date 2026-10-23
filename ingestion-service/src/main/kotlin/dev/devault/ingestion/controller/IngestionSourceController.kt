@@ -35,28 +35,25 @@ class IngestionSourceController(
 
     @GetMapping
     fun findAllIngestedSources(
-        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID
     ): ResponseEntity<ApiResponse<List<IngestionSourceResponseDto>>> {
-        return ResponseEntity.ok(ApiResponse.ok(service.findAllIngestedSources(authenticatedUser, workspaceId)))
+        return ResponseEntity.ok(ApiResponse.ok(service.findAllIngestedSources(workspaceId)))
     }
 
     @GetMapping("/{sourceId}")
     fun findIngestedSource(
-        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID,
         @PathVariable sourceId: UUID
     ): ResponseEntity<ApiResponse<IngestionSourceResponseDto>> {
-        return ResponseEntity.ok(ApiResponse.ok(service.findIngestedSource(authenticatedUser, workspaceId, sourceId)))
+        return ResponseEntity.ok(ApiResponse.ok(service.findIngestedSource(workspaceId, sourceId)))
     }
 
     @DeleteMapping("/{sourceId}")
     fun deleteIngestedSource(
-        @AuthenticationPrincipal authenticatedUser: AuthenticatedUser,
         @PathVariable workspaceId: UUID,
         @PathVariable sourceId: UUID
     ): ResponseEntity<Void> {
-        service.deleteIngestedSource(authenticatedUser, workspaceId, sourceId)
+        service.deleteIngestedSource(workspaceId, sourceId)
         return ResponseEntity.noContent().build()
     }
 }

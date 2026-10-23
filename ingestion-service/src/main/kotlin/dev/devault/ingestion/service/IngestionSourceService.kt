@@ -1,9 +1,12 @@
 package dev.devault.ingestion.service
 
 import dev.devault.authlib.security.principal.AuthenticatedUser
+import dev.devault.commonlib.type.WorkspaceRole
+import dev.devault.ingestion.client.workspace.WorkspaceClient
 import dev.devault.ingestion.dto.request.SaveIngestionSourceDto
 import dev.devault.ingestion.dto.response.IngestionSourceResponseDto
 import dev.devault.ingestion.dto.response.toResponse
+import dev.devault.ingestion.exception.InsufficientPermissionException
 import dev.devault.ingestion.exception.SourceAlreadyConnectedException
 import dev.devault.ingestion.exception.SourceNotFoundException
 import dev.devault.ingestion.exception.SourceSyncInProgressException
@@ -20,11 +23,11 @@ class IngestionSourceService(
     private val repository: IngestionSourceRepository,
     private val credentialService: CredentialService,
     private val backfillService: BackfillService,
-    private val documentService: IngestedDocumentService
+    private val documentService: IngestedDocumentService,
+    private val workspaceClient: WorkspaceClient
 ) {
     fun connectSource(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: SaveIngestionSourceDto): IngestionSourceResponseDto {
-        // TODO(ING-9): brak weryfikacji roli w workspace
-
+        requireRole(workspaceId, setOf(WorkspaceRole.ADMIN, WorkspaceRole.OWNER))
         credentialService.getTokenForUser(dto.credentialRef, authenticatedUser.id)
 
         val source = IngestionSource(
@@ -45,20 +48,23 @@ class IngestionSourceService(
         return savedSource.toResponse()
     }
 
-    fun findAllIngestedSources(authenticatedUser: AuthenticatedUser, workspaceId: UUID): List<IngestionSourceResponseDto> {
-        // TODO(ING-9): filtr po użytkowniku zastępuje brak weryfikacji członkostwa w workspace
-        val sources = repository.findAllByConnectedByUserIdAndWorkspaceId(authenticatedUser.id, workspaceId)
+    fun findAllIngestedSources(workspaceId: UUID): List<IngestionSourceResponseDto> {
+        requireMember(workspaceId)
+
+        val sources = repository.findAllByWorkspaceId(workspaceId)
 
         return sources.map { it.toResponse() }
     }
 
-    fun findIngestedSource(authenticatedUser: AuthenticatedUser, workspaceId: UUID, sourceId: UUID): IngestionSourceResponseDto {
-        return findSource(authenticatedUser, workspaceId, sourceId).toResponse()
+    fun findIngestedSource(workspaceId: UUID, sourceId: UUID): IngestionSourceResponseDto {
+        requireMember(workspaceId)
+        return findSource(workspaceId, sourceId).toResponse()
     }
 
     @Transactional
-    fun deleteIngestedSource(authenticatedUser: AuthenticatedUser, workspaceId: UUID, sourceId: UUID) {
-        val source = findSource(authenticatedUser, workspaceId, sourceId)
+    fun deleteIngestedSource(workspaceId: UUID, sourceId: UUID) {
+        requireRole(workspaceId, setOf(WorkspaceRole.ADMIN, WorkspaceRole.OWNER))
+        val source = findSource(workspaceId, sourceId)
 
         if (source.status in listOf(StatusType.PENDING, StatusType.SYNCING))
             throw SourceSyncInProgressException("Source is being synchronized")
@@ -71,12 +77,20 @@ class IngestionSourceService(
         return repository.existsByCredentialRef(credentialRef)
     }
 
-    private fun findSource(authenticatedUser: AuthenticatedUser, workspaceId: UUID, sourceId: UUID): IngestionSource {
-        // TODO(ING-9): filtr po użytkowniku zastępuje brak weryfikacji członkostwa w workspace
-        return repository.findByConnectedByUserIdAndIdAndWorkspaceId(
-            userId = authenticatedUser.id,
+    private fun findSource(workspaceId: UUID, sourceId: UUID): IngestionSource {
+        return repository.findByIdAndWorkspaceId(
             sourceId = sourceId,
             workspaceId = workspaceId
         ) ?: throw SourceNotFoundException("Source not found")
+    }
+
+    private fun requireRole(workspaceId: UUID, allowed: Set<WorkspaceRole>) {
+        val role = workspaceClient.getWorkspaceMemberRole(workspaceId)
+        if (role !in allowed)
+            throw InsufficientPermissionException("Insufficient member permission")
+    }
+
+    private fun requireMember(workspaceId: UUID) {
+        workspaceClient.getWorkspaceMemberRole(workspaceId)
     }
 }
