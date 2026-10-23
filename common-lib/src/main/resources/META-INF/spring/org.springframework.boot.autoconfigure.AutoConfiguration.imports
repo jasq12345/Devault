@@ -1,1 +1,2 @@
 dev.devault.commonlib.config.CommonLibAutoConfiguration
+dev.devault.commonlib.openapi.OpenApiAutoConfiguration

@@ -4,6 +4,7 @@ plugins {
     id("org.springframework.boot")
     id("io.spring.dependency-management")
     kotlin("plugin.jpa")
+    id("devault.springdoc")
 }
 
 group = "dev.devault"

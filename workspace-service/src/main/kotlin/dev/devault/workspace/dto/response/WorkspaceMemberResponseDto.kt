@@ -1,7 +1,7 @@
 package dev.devault.workspace.dto.response
 
 import dev.devault.workspace.model.WorkspaceMember
-import dev.devault.workspace.type.WorkspaceRole
+import dev.devault.commonlib.type.WorkspaceRole
 import java.util.UUID
 
 data class WorkspaceMemberResponseDto(

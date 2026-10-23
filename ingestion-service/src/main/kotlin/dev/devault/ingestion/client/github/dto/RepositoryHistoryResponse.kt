@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RepositoryHistoryResponse(
     val rateLimit: RateLimitInfo,
-    val repository: Repository
+    val repository: Repository?
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

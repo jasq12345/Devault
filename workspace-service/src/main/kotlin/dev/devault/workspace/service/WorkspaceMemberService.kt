@@ -11,7 +11,7 @@ import dev.devault.workspace.exception.UserAlreadyMemberException
 import dev.devault.workspace.model.Workspace
 import dev.devault.workspace.model.WorkspaceMember
 import dev.devault.workspace.repository.WorkspaceMemberRepository
-import dev.devault.workspace.type.WorkspaceRole
+import dev.devault.commonlib.type.WorkspaceRole
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.security.access.AccessDeniedException
@@ -44,6 +44,10 @@ class WorkspaceMemberService(
             ?: throw NoSuchElementException("Workspace member not found")
 
         return member.toResponse()
+    }
+
+    fun findCurrentMember(authenticatedUser: AuthenticatedUser, workspaceId: UUID): WorkspaceMemberResponseDto {
+        return requireMember(workspaceId, authenticatedUser.id).toResponse()
     }
 
     fun saveWorkspaceMember(authenticatedUser: AuthenticatedUser, workspaceId: UUID, dto: SaveWorkspaceMemberDto): WorkspaceMemberResponseDto {
@@ -99,12 +103,16 @@ class WorkspaceMemberService(
         return repository.save(member).toResponse()
     }
 
-    private fun requireRole(workspaceId: UUID, userId: UUID, roles: List<WorkspaceRole>): WorkspaceMember {
+    private fun requireMember(workspaceId: UUID, userId: UUID): WorkspaceMember {
         if (!repository.existsByWorkspaceId(workspaceId))
             throw NoSuchElementException("Workspace not found")
 
-        val member = repository.findWorkspaceMemberByWorkspaceIdAndUserId(workspaceId, userId)
+        return repository.findWorkspaceMemberByWorkspaceIdAndUserId(workspaceId, userId)
             ?: throw AccessDeniedException("Access denied")
+    }
+
+    private fun requireRole(workspaceId: UUID, userId: UUID, roles: List<WorkspaceRole>): WorkspaceMember {
+        val member = requireMember(workspaceId, userId)
 
         if (member.role !in roles)
             throw AccessDeniedException("Access denied")

@@ -48,3 +48,11 @@ application-secrets.yml
 
 ### Docker-compose ###
 docker-compose.override.yml
+
+public.pem
+private.pem
+
+### Insomnia (generated, see insomnia/README.md) ###
+insomnia/*.insomnia.json
+
+AGENTS.md

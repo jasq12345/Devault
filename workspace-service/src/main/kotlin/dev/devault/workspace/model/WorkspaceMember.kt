@@ -1,6 +1,6 @@
 package dev.devault.workspace.model
 
-import dev.devault.workspace.type.WorkspaceRole
+import dev.devault.commonlib.type.WorkspaceRole
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType

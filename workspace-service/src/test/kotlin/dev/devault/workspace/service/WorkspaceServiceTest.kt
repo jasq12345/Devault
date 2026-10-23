@@ -9,7 +9,7 @@ import dev.devault.workspace.exception.SlugAlreadyExistsException
 import dev.devault.workspace.model.Workspace
 import dev.devault.workspace.model.WorkspaceMember
 import dev.devault.workspace.repository.WorkspaceRepository
-import dev.devault.workspace.type.WorkspaceRole
+import dev.devault.commonlib.type.WorkspaceRole
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify

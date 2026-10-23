@@ -1,8 +1,8 @@
 plugins {
-    kotlin("jvm") version "2.2.21"
-    kotlin("plugin.spring") version "2.2.21"
-    id("org.springframework.boot") version "4.0.6"
-    id("io.spring.dependency-management") version "1.1.7"
+    kotlin("jvm")
+    kotlin("plugin.spring")
+    id("org.springframework.boot")
+    id("io.spring.dependency-management")
 }
 
 group = "dev.devault"
@@ -24,8 +24,10 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.security:spring-security-core")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    compileOnly(libs.springdoc.openapi.starter.common)
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation(libs.springdoc.openapi.starter.webmvc.ui)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -37,4 +39,13 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// Library module: no main class, publish a plain jar instead of a Boot fat jar
+tasks.bootJar {
+    enabled = false
+}
+
+tasks.jar {
+    enabled = true
 }

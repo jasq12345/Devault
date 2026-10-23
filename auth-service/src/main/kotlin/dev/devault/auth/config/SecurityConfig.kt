@@ -1,5 +1,6 @@
 package dev.devault.auth.config
 
+import dev.devault.authlib.config.properties.AuthLibSecurityProperties
 import dev.devault.authlib.filter.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -19,7 +20,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
-    private val jwtFilter: JwtAuthenticationFilter
+    private val jwtFilter: JwtAuthenticationFilter,
+    private val authLibSecurityProperties: AuthLibSecurityProperties
 ){
 
     @Bean
@@ -30,6 +32,9 @@ class SecurityConfig(
                 authorize.requestMatchers("/.well-known/jwks.json").permitAll()
                 authorize.requestMatchers("/api/v1/auth/**").permitAll()
                 authorize.requestMatchers("/actuator/health").permitAll()
+                if (authLibSecurityProperties.publicPaths.isNotEmpty()) {
+                    authorize.requestMatchers(*authLibSecurityProperties.publicPaths.toTypedArray()).permitAll()
+                }
                 authorize.anyRequest().authenticated()
             }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }

@@ -50,6 +50,23 @@ class JwtAuthenticationProviderTest {
         }
 
         @Test
+        fun `keeps the jwt as credentials so a service can pass it on to another service`() {
+            val candidate = mockk<JwtTokenCandidate>()
+
+            every { candidate.credentials } returns token
+            every { jwtClaimsService.validate(token) } returns Unit
+            every { jwtClaimsService.extractId(token) } returns UUID.randomUUID()
+            every { jwtClaimsService.extractUsername(token) } returns "username"
+            every { jwtClaimsService.extractAuthorities(token) } returns listOf("USER")
+
+            val result = provider.authenticate(candidate)
+
+            assertEquals(token, result?.credentials)
+            // toString() must not reveal it: Spring prints the credentials as [PROTECTED].
+            assertFalse(result.toString().contains(token))
+        }
+
+        @Test
         fun `returns null when authentication is not a JwtTokenCandidate`() {
             val authentication = mockk<Authentication>()
 

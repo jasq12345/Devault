@@ -1,7 +1,8 @@
 package dev.devault.ingestion.service
 
-import dev.devault.ingestion.client.github.GitHubClient
+import dev.devault.ingestion.client.github.GithubClient
 import dev.devault.ingestion.client.github.dto.CommitNode
+import dev.devault.ingestion.client.github.dto.HistoryConnection
 import dev.devault.ingestion.client.github.dto.IssueLikeNode
 import dev.devault.ingestion.model.IngestedDocument
 import dev.devault.ingestion.model.IngestionSource
@@ -9,7 +10,7 @@ import dev.devault.ingestion.repository.IngestedDocumentRepository
 import dev.devault.ingestion.repository.IngestionSourceRepository
 import dev.devault.ingestion.type.DocumentType
 import dev.devault.ingestion.type.StatusType
-import org.springframework.dao.DataIntegrityViolationException
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import java.security.MessageDigest
@@ -20,8 +21,9 @@ import java.util.UUID
 class BackfillService(
     private val documentRepository: IngestedDocumentRepository,
     private val sourceRepository: IngestionSourceRepository,
-    private val gitHubClient: GitHubClient
+    private val githubClient: GithubClient
 ) {
+    private val logger = LoggerFactory.getLogger(this::class.java)
 
     private val IngestionSource.githubOwner: String
         get() = externalId.substringBefore("/")
@@ -41,7 +43,8 @@ class BackfillService(
             syncPullRequests(source)
             syncIssues(source)
             source.status = StatusType.ACTIVE
-        } catch (_: Exception) {
+        } catch (ex: Exception) {
+            logger.error("Backfill failed for source {}", sourceId, ex)
             source.status = StatusType.ERROR
         } finally {
             sourceRepository.save(source)
@@ -52,7 +55,7 @@ class BackfillService(
         var cursor: String? = null
         var page: HistoryConnection
         do {
-            page = gitHubClient.fetchCommitHistory(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
+            page = githubClient.fetchCommitHistory(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)
@@ -61,7 +64,7 @@ class BackfillService(
     private fun syncPullRequests(source: IngestionSource) {
         var cursor: String? = null
         do {
-            val page = gitHubClient.fetchPullRequests(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
+            val page = githubClient.fetchPullRequests(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node, DocumentType.PULL_REQUEST) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)
@@ -70,7 +73,7 @@ class BackfillService(
     private fun syncIssues(source: IngestionSource) {
         var cursor: String? = null
         do {
-            val page = gitHubClient.fetchIssues(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
+            val page = githubClient.fetchIssues(source.connectedByUserId, source.githubOwner, source.githubName, source.credentialRef, cursor)
             page.nodes.forEach { node -> saveAsIngestedDocument(source, node, DocumentType.ISSUE) }
             cursor = page.pageInfo.endCursor
         } while (page.pageInfo.hasNextPage)
@@ -85,6 +88,9 @@ class BackfillService(
     }
 
     private fun save(source: IngestionSource, externalRef: String, content: String, type: DocumentType) {
+        // Skip documents that are already stored to keep backfill idempotent.
+        if (documentRepository.existsBySourceAndExternalRef(source, externalRef)) return
+
         val doc = IngestedDocument(
             source = source,
             externalRef = externalRef,
@@ -93,11 +99,8 @@ class BackfillService(
             documentType = type,
             ingestedAt = Instant.now()
         )
-        try {
-            documentRepository.saveAndFlush(doc)
-        } catch (_: DataIntegrityViolationException) {
-            // Ignore duplicates to keep backfill idempotent.
-        }
+        documentRepository.saveAndFlush(doc)
+    }
 
     private fun sha256(input: String): String {
         val digest = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))

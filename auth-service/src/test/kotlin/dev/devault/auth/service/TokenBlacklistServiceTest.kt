@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.ValueOperations
+import java.time.Duration
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -23,7 +23,7 @@ class TokenBlacklistServiceTest {
             val valueOperations = mockk<ValueOperations<String, String>>()
 
             every { redisTemplate.opsForValue() } returns valueOperations
-            every { valueOperations.setIfAbsent("blacklist:$jti", "1", 60000L, TimeUnit.MILLISECONDS) } returns true
+            every { valueOperations.setIfAbsent("blacklist:$jti", "1", Duration.ofMillis(60000L)) } returns true
 
             assertTrue {
                 service.blacklist(jti, 60000L)
@@ -36,7 +36,7 @@ class TokenBlacklistServiceTest {
             val valueOperations = mockk<ValueOperations<String, String>>()
 
             every { redisTemplate.opsForValue() } returns valueOperations
-            every { valueOperations.setIfAbsent("blacklist:$jti", "1", 60000L, TimeUnit.MILLISECONDS) } returns false
+            every { valueOperations.setIfAbsent("blacklist:$jti", "1", Duration.ofMillis(60000L)) } returns false
 
             assertFalse {
                 service.blacklist(jti, 60000L)
